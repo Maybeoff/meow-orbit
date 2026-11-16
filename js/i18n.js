@@ -29,6 +29,16 @@
         menu: 'В меню'
       },
       common: { ad: 'реклама', ok: 'Понятно', close: 'Закрыть', cancel: 'Отмена', loading: 'Загрузка…' },
+      install: {
+        title: 'Установить приложение',
+        button: 'Установить',
+        hint: 'Игра откроется в отдельном окне и будет работать без интернета.',
+        note: 'Иконка появится на рабочем столе или главном экране, как у обычного приложения.',
+        ios: 'В Safari нажми «Поделиться» и выбери «На экран „Домой“».',
+        android: 'В меню браузера выбери «Установить приложение» или «Добавить на главный экран».',
+        desktop: 'Нажми значок установки в адресной строке браузера.',
+        done: 'Готово — игра установлена'
+      },
       power: { shield: 'ЩИТ', magnet: 'МАГНИТ', slow: 'ЗАМЕДЛЕНИЕ' },
       event: { third: 'ТРЕТЬЯ ОРБИТА!' },
       pause: {
@@ -141,6 +151,16 @@
         menu: 'Menu'
       },
       common: { ad: 'ad', ok: 'Got it', close: 'Close', cancel: 'Cancel', loading: 'Loading…' },
+      install: {
+        title: 'Install the game',
+        button: 'Install',
+        hint: 'The game opens in its own window and works offline.',
+        note: 'The icon will appear on your desktop or home screen like a regular app.',
+        ios: 'In Safari tap Share and choose “Add to Home Screen”.',
+        android: 'In the browser menu choose “Install app” or “Add to Home screen”.',
+        desktop: 'Click the install icon in the browser address bar.',
+        done: 'Done — the game is installed'
+      },
       power: { shield: 'SHIELD', magnet: 'MAGNET', slow: 'SLOW-MO' },
       event: { third: 'THIRD ORBIT!' },
       pause: {
@@ -253,6 +273,16 @@
         menu: 'Menü'
       },
       common: { ad: 'reklam', ok: 'Anladım', close: 'Kapat', cancel: 'İptal', loading: 'Yükleniyor…' },
+      install: {
+        title: 'Uygulamayı yükle',
+        button: 'Yükle',
+        hint: 'Oyun ayrı bir pencerede açılır ve internetsiz çalışır.',
+        note: 'Simge masaüstünde veya ana ekranda normal bir uygulama gibi görünür.',
+        ios: 'Safari\'de «Paylaş» öğesine dokun ve «Ana Ekrana Ekle» seç.',
+        android: 'Tarayıcı menüsünden «Uygulamayı yükle» veya «Ana ekrana ekle» seç.',
+        desktop: 'Tarayıcı adres çubuğundaki yükleme simgesine tıkla.',
+        done: 'Hazır — oyun yüklendi'
+      },
       power: { shield: 'KALKAN', magnet: 'MIKNATIS', slow: 'YAVAŞ' },
       event: { third: 'ÜÇÜNCÜ YÖRÜNGE!' },
       pause: {

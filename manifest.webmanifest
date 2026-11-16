@@ -1,0 +1,80 @@
+{
+  "id": "./",
+  "name": "МЯУ·ОРБИТА — космическая аркада",
+  "short_name": "МЯУ·ОРБИТА",
+  "description": "Космический кот на орбите: собирай рыбок, уворачивайся от астероидов и ставь рекорды.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#0a0716",
+  "theme_color": "#0a0716",
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/shot-0-menu.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Меню игры"
+    },
+    {
+      "src": "assets/shot-1-gameplay.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Три орбиты, рыбки и астероиды"
+    },
+    {
+      "src": "assets/shot-2-result.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Экран результата"
+    },
+    {
+      "src": "assets/shot-3-shop.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Магазин скинов"
+    },
+    {
+      "src": "assets/shot-4-bonus.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Ежедневные бонусы"
+    }
+  ]
+}

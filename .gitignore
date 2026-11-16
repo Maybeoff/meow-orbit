@@ -9,3 +9,5 @@ _i18ncheck2.js
 # крупные исходники видео (готовый ролик лежит в assets/video)
 assets/video/*.mp4
 node_modules/
+
+site/

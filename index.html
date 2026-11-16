@@ -6,6 +6,14 @@
 <title>Мяу-Орбита</title>
 <meta name="theme-color" content="#0a0716">
 <meta name="description" content="Космический кот на орбите: собирай рыбки, уклоняйся от астероидов.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="application-name" content="МЯУ·ОРБИТА">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="МЯУ·ОРБИТА">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -88,6 +96,7 @@
 
     <div class="menu-foot">
       <button class="linkish" id="btn-howto" data-i18n="menu.howto">Как играть</button>
+      <button class="linkish hidden" id="btn-install" data-i18n="install.button">Установить</button>
     </div>
   </div>
 
@@ -197,11 +206,25 @@
         <div class="card-title small" data-i18n="settings.controls">Управление</div>
         <p class="text" data-i18n="settings.controlsText">Тап, клик или пробел — сменить орбиту. Собирай рыбок, уходи от астероидов. Три рыбки подряд — множитель.</p>
       </div>
+      <div class="card slim hidden" id="card-install">
+        <div class="card-title small" data-i18n="install.title">Установить приложение</div>
+        <p class="text" data-i18n="install.hint">Игра откроется в отдельном окне и будет работать без интернета.</p>
+        <button class="btn btn-primary" id="btn-install-settings" data-i18n="install.button">Установить</button>
+      </div>
       <div class="card slim">
         <button class="btn btn-ghost" id="btn-reset" data-i18n="settings.reset">Сбросить прогресс</button>
         <p class="text tiny" data-i18n="settings.resetHint">Удалит монеты, скины и рекорд.</p>
       </div>
       <div class="version">Мяу-Орбита v1.0</div>
+    </div>
+  </div>
+
+  <div id="scr-install" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="install.title">Установить приложение</div>
+      <p class="text" id="install-text" data-i18n="install.hint">Игра откроется в отдельном окне и будет работать без интернета.</p>
+      <p class="text tiny" data-i18n="install.note">Иконка появится на рабочем столе или главном экране, как у обычного приложения.</p>
+      <button class="btn btn-primary" data-close data-i18n="common.ok">Понятно</button>
     </div>
   </div>
 
@@ -228,5 +251,6 @@
 <script src="js/save.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/pwa.js"></script>
 </body>
 </html>

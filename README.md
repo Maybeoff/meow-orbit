@@ -6,6 +6,8 @@
 
 ![Меню игры](assets/shot-0-menu.png)
 
+Игру можно установить как приложение: на Android и в Chrome/Edge — кнопка «Установить» в меню или значок в адресной строке, на iPhone — «Поделиться» → «На экран „Домой“». После установки игра открывается в отдельном окне и работает без интернета.
+
 ## Что внутри
 
 - Три орбиты: третья открывается на 1000 очков.
@@ -24,25 +26,32 @@
 ## Структура
 
 ```
-index.html        разметка всех экранов
-css/style.css     UI, общая ширина контента --content
-js/game.js        движок: орбиты, спавн, коридор безопасности, рендер
-js/ui.js          экраны, магазин, миссии, награды
-js/sdk.js         обёртка Yandex Games SDK (реклама, покупки, лидерборды)
-js/save.js        сохранения и облако
-js/i18n.js        локализация RU/EN/TR
-tools/build.js    сборка однофайлового dist/index.html + zip
-assets/           иконка, обложки, скриншоты, промо
+index.html            разметка всех экранов
+manifest.webmanifest  манифест PWA (иконки, standalone, портрет)
+sw.js                 service worker: офлайн-кэш игры
+css/style.css         UI, общая ширина контента --content
+js/game.js            движок: орбиты, спавн, коридор безопасности, рендер
+js/ui.js              экраны, магазин, миссии, награды
+js/pwa.js             установка приложения, регистрация service worker
+js/sdk.js             обёртка Yandex Games SDK (реклама, покупки, лидерборды)
+js/save.js            сохранения и облако
+js/i18n.js            локализация RU/EN/TR
+tools/build.js        сборка dist/index.html, site/ и zip
+tools/gh-pages.js     обновление ветки gh-pages из site/
+icons/                иконки 192/512, maskable, apple-touch
+assets/              иконка, обложки, скриншоты, промо
 ```
 
 ## Сборка
 
 ```bash
-node tools/build.js          # dist/index.html + meow-orbit.zip
+node tools/build.js          # dist/index.html + site/ + meow-orbit.zip
+node tools/gh-pages.js       # пересобрать ветку gh-pages из site/
+node tools/pwa-test.js       # проверка манифеста, установки и офлайна
 node tools/serve.js 8123     # локальный сервер: http://localhost:8123/
 ```
 
-Однофайловая сборка нужна для площадок, которые вставляют игру через `srcdoc` (черновик Яндекс Игр): относительные пути `css/` и `js/` там не разрешаются.
+Однофайловая сборка нужна для площадок, которые вставляют игру через `srcdoc` (черновик Яндекс Игр): относительные пути `css/` и `js/` там не разрешаются. Папка `site/` — это PWA-версия для GitHub Pages: тот же однофайловый `index.html` плюс манифест, service worker и иконки.
 
 ## Публикация
 

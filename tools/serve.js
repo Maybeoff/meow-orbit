@@ -11,6 +11,7 @@ const types = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
@@ -21,6 +22,7 @@ const types = {
 http.createServer((req, res) => {
   let url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/') url = '/index.html';
+  if (/\/$/.test(url)) url += 'index.html';
   const file = path.join(root, url);
   if (!file.startsWith(root)) {
     res.writeHead(403); res.end('forbidden'); return;
