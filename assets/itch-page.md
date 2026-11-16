@@ -108,7 +108,7 @@ Pure HTML5 + Canvas, no engine, no install. Runs in the browser on desktop and m
 > Один тап — и ты уже на другой орбите. Собирай золотых рыбок, держи комбо и не задень астероид: щит выручит только раз.
 > На 1000 очков открывается третья орбита — там рыбнее, но и опаснее.
 > 12 скинов, ежедневные награды, миссии и таблица рекордов. Забег на 2 минуты, из которого сложно выйти.
-> Играй в браузере: `[ссылка]`
+> Играй в браузере: `https://maybe.su/meow-orbit/`
 
 ## Post for social (EN)
 
@@ -116,7 +116,7 @@ Pure HTML5 + Canvas, no engine, no install. Runs in the browser on desktop and m
 > One tap hops you to the next orbit. Grab golden fish, keep the combo alive, don't clip an asteroid — your shield only works once.
 > Hit 1000 points and a third orbit opens: more fish, more risk.
 > 12 skins, daily rewards, missions and a leaderboard. A two-minute run you'll want to replay.
-> Play in your browser: `[link]`
+> Play in your browser: `https://maybe.su/meow-orbit/`
 
 ---
 
