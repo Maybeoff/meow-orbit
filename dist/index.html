@@ -4508,6 +4508,7 @@ svg{width:100%;height:100%;display:block;fill:none}
     },
 
     canInstall: function () {
+      if (window.top !== window.self) return false;
       return !!this.deferred || (this.isIOS() && !this.standalone);
     },
 

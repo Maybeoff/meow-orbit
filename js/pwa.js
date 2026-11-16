@@ -68,6 +68,7 @@
     },
 
     canInstall: function () {
+      if (window.top !== window.self) return false;
       return !!this.deferred || (this.isIOS() && !this.standalone);
     },
 
