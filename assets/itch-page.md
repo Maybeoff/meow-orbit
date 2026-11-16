@@ -16,7 +16,7 @@
 | Embed | Viewport `480 × 854`, ✅ Mobile friendly, ✅ Fullscreen button, ✅ Automatically start on page load |
 | Cover image | `assets/itch-cover-630x500.png` |
 | Screenshots | `assets/shot-0-menu.png` … `shot-4-bonus.png` (1080×1920) |
-| Video | опционально `assets/video/gameplay-h.mp4` |
+| Video | не заливается на itch (там только YouTube/Vimeo) — ролик `assets/video/gameplay-h.mp4` остаётся для Яндекса |
 | Languages | Русский, English, Türkçe |
 
 ---
