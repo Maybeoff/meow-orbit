@@ -50,15 +50,15 @@ self.addEventListener('fetch', function (e) {
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== location.origin) return;
 
-  // навигация: сеть, при обрыве — кэш
+  // навигация: сразу из кэша, сеть обновляет копию в фоне
   if (req.mode === 'navigate') {
+    var fresh = fetch(req).then(function (r) {
+      return remember('./index.html', r);
+    });
+    e.waitUntil(fresh.catch(function () {}));
     e.respondWith(
-      fetch(req).then(function (r) {
-        return remember('./index.html', r);
-      }).catch(function () {
-        return caches.match('./index.html').then(function (hit) {
-          return hit || caches.match('./');
-        });
+      caches.match('./index.html').then(function (hit) {
+        return hit || fresh;
       })
     );
     return;

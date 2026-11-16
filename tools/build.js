@@ -42,14 +42,15 @@ fs.writeFileSync(path.join(DIST, 'index.html'), html, 'utf8');
 console.log('dist/index.html ' + Math.round(html.length / 1024) + ' KB');
 
 // PWA-сайт для GitHub Pages: однофайловый index.html + манифест, service worker, иконки
-const version = crypto.createHash('sha1').update(html).digest('hex').slice(0, 10);
+let sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+if (sw.indexOf("'__BUILD__'") < 0) throw new Error('sw.js: не найден маркер __BUILD__');
+
+const version = crypto.createHash('sha1').update(html).update(sw).digest('hex').slice(0, 10);
 fs.rmSync(SITE, { recursive: true, force: true });
 fs.mkdirSync(SITE, { recursive: true });
 fs.writeFileSync(path.join(SITE, 'index.html'), html, 'utf8');
 fs.copyFileSync(path.join(ROOT, 'manifest.webmanifest'), path.join(SITE, 'manifest.webmanifest'));
 
-let sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-if (sw.indexOf("'__BUILD__'") < 0) throw new Error('sw.js: не найден маркер __BUILD__');
 sw = sw.replace("'__BUILD__'", "'" + version + "'");
 fs.writeFileSync(path.join(SITE, 'sw.js'), sw, 'utf8');
 
