@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>vcheck</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function () {
+  function qs(k, d) { var m = new RegExp('[?&]' + k + '=([^&]+)').exec(location.search); return m ? decodeURIComponent(m[1]) : d; }
+  var src = qs('src', '/assets/video/gameplay-h.mp4');
+  var t = Number(qs('t', 3));
+  var v = document.createElement('video');
+  v.src = src; v.muted = true; v.playsInline = true;
+  var c = document.getElementById('c');
+  var ctx = c.getContext('2d');
+  v.addEventListener('loadedmetadata', function () {
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    window.__meta = JSON.stringify({ w: v.videoWidth, h: v.videoHeight, d: Math.round(v.duration * 100) / 100 });
+    v.currentTime = Math.min(t, Math.max(0, v.duration - 0.2));
+  });
+  v.addEventListener('seeked', function () {
+    ctx.drawImage(v, 0, 0);
+    window.__ok = true;
+  });
+  document.body.appendChild(v);
+  v.style.display = 'none';
+})();
+</script>
+</body>
+</html>

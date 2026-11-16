@@ -1,0 +1,16 @@
+{
+  "ru": {
+    "title": "Мяу-Орбита",
+    "seo": "Космический кот на орбите: собирай рыбок, уворачивайся от астероидов и ставь рекорды. Аркада на реакцию с бонусами, скинами и ежедневными наградами.",
+    "description": "Мяу-Орбита — космическая аркада про кота, который наматывает круги вокруг планеты.\nТап, клик или пробел — и кот перескакивает на соседнюю орбиту. Собирай золотых рыбок: каждая следующая подряд увеличивает множитель комбо, а промах сбрасывает его. Астероиды не догоняют — они висят на орбитах, поэтому всё решает реакция и тайминг.\nЧто внутри:\n— три орбиты: третья открывается на 1000 очков и даёт больше рыбок, но и больше риска;\n— бонусы: щит, магнит, который притягивает рыбок, и замедление времени;\n— 12 скинов кота, от классического до космического;\n— ежедневная награда, три миссии на день и бесплатные монеты за рекламу;\n— таблица лидеров, рекорды и облачные сохранения.\nСессии по 2–5 минут: удобно играть в дороге, но сложно остановиться.",
+    "short": "Космический кот, рыбки и астероиды. Один тап — и ты на новой орбите!",
+    "instruction": "1. Тап по экрану, клик мышью или пробел — кот перескакивает на соседнюю орбиту.\n2. Собирай рыбок: каждая подряд растёт комбо и множитель очков. Промах сбрасывает комбо.\n3. Астероиды висят на орбитах — перескакивай заранее, столкновение заканчивает забег.\n4. Бонусы: щит держит один удар, магнит притягивает рыбок, замедление даёт время подумать.\n5. На 1000 очков открывается третья орбита — там больше рыбок.\nНа компьютере также работают стрелка вверх и клавиша W."
+  },
+  "en": {
+    "title": "Meow Orbit",
+    "seo": "A space cat collects fish and dodges asteroids on orbit. A reflex arcade with combos, power-ups, skins and daily rewards.",
+    "description": "Meow Orbit is a space arcade about a cat looping around a planet.\nTap, click or press Space to hop to the next orbit. Collect golden fish: each one in a row raises your combo multiplier, and a miss resets it. Asteroids do not chase you — they sit on orbits, so it is all about reflex and timing.\nWhat is inside:\n— three orbits: the third one unlocks at 1000 points and brings more fish (and more risk);\n— power-ups: shield, magnet that pulls fish in, and time slow;\n— 12 cat skins, from classic to cosmic;\n— daily reward, three daily missions and free coins for watching ads;\n— leaderboard, personal bests and cloud saves.\nRuns last 2–5 minutes: perfect for a commute, hard to stop.",
+    "short": "A space cat, golden fish and asteroids. One tap — and you are on a new orbit!",
+    "instruction": "1. Tap the screen, click or press Space — the cat hops to the next orbit.\n2. Collect fish: each one in a row grows your combo and score multiplier. A miss resets the combo.\n3. Asteroids sit on the orbits — hop in advance, a collision ends the run.\n4. Power-ups: shield blocks one hit, magnet pulls fish in, time slow gives you a moment to think.\n5. At 1000 points the third orbit opens — more fish there.\nOn desktop you can also use the up arrow or W."
+  }
+}

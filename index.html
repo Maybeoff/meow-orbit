@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Мяу-Орбита</title>
+<meta name="theme-color" content="#0a0716">
+<meta name="description" content="Космический кот на орбите: собирай рыбки, уклоняйся от астероидов.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<svg class="svg-defs" aria-hidden="true">
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 6.5v11M9.4 9.2h4a2 2 0 010 4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 5h2.2l2 10.4h9.6L19 8H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19" r="1.6" fill="currentColor"/><circle cx="17" cy="19" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 01-10 0V4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5H4v2a3 3 0 003 3M17 5h3v2a3 3 0 01-3 3M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 13h16M12 9v11M12 9c-2.6 0-4-1-4-2.6C8 5 9 4.4 10 4.6 11.6 5 12 7.4 12 9zm0 0c2.6 0 4-1 4-2.6 0-1.4-1-2-2-1.8C12.4 5 12 7.4 12 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5l1.2 2.1 2.4-.5.5 2.4 2.1 1.2-1.2 2.1 1.2 2.1-2.1 1.2-.5 2.4-2.4-.5L12 20.5l-1.2-2.1-2.4.5-.5-2.4-2.1-1.2L6.9 12 5.7 9.9l2.1-1.2.5-2.4 2.4.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1.2" fill="currentColor"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-ad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3L12 5v14L7 14.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="16" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+</svg>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-coins"><svg><use href="#i-coin"/></svg><span id="hud-coins">0</span></div>
+      <div class="hud-center">
+        <div id="hud-score">0</div>
+        <div id="hud-combo" class="combo hidden">x1</div>
+      </div>
+      <button id="btn-pause" class="icon-btn small"><svg><use href="#i-pause"/></svg></button>
+    </div>
+    <div id="hud-power" class="hud-power hidden"></div>
+    <div id="hint" class="hint hidden">
+      <div class="hint-finger">☝</div>
+      <div class="hint-text" data-i18n="tutorial.tap">Тапни, чтобы сменить орбиту</div>
+    </div>
+  </div>
+
+  <div id="scr-loading" class="screen show">
+    <div class="logo small">МЯУ<span>·</span>ОРБИТА</div>
+    <div class="spinner"></div>
+  </div>
+
+  <div id="scr-menu" class="screen">
+    <div class="top-bar">
+      <div class="coin-pill"><svg><use href="#i-coin"/></svg><span id="menu-coins">0</span></div>
+      <button class="icon-btn" id="btn-settings" aria-label="settings"><svg><use href="#i-gear"/></svg></button>
+    </div>
+
+    <div class="menu-hero">
+      <div class="logo">МЯУ<span>·</span>ОРБИТА</div>
+      <div class="tagline" data-i18n="menu.tagline">Космический кот, рыбки и астероиды</div>
+      <div class="best-line"><span data-i18n="menu.best">Рекорд</span><b id="menu-best">0</b></div>
+    </div>
+
+    <div class="menu-actions">
+      <button class="btn btn-primary btn-play" id="btn-play">
+        <svg class="ic-play"><use href="#i-play"/></svg>
+        <span data-i18n="menu.play">Играть</span>
+      </button>
+      <div class="menu-row">
+        <button class="tile" id="btn-shop">
+          <svg><use href="#i-cart"/></svg>
+          <span data-i18n="menu.shop">Магазин</span>
+          <i class="dot hidden" id="dot-shop"></i>
+        </button>
+        <button class="tile" id="btn-leaders">
+          <svg><use href="#i-trophy"/></svg>
+          <span data-i18n="menu.leaders">Лидеры</span>
+        </button>
+        <button class="tile" id="btn-daily">
+          <svg><use href="#i-gift"/></svg>
+          <span data-i18n="menu.daily">Бонусы</span>
+          <i class="dot hidden" id="dot-daily"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-foot">
+      <button class="linkish" id="btn-howto" data-i18n="menu.howto">Как играть</button>
+    </div>
+  </div>
+
+  <div id="scr-over" class="screen">
+    <div class="card card-over">
+      <div class="over-label" data-i18n="over.title">Забег окончен</div>
+      <div class="over-newbest hidden" id="over-newbest" data-i18n="over.newbest">Новый рекорд!</div>
+      <div class="big-score" id="over-score">0</div>
+      <div class="stats">
+        <div><span data-i18n="over.best">Рекорд</span><b id="over-best">0</b></div>
+        <div><span data-i18n="over.fish">Рыбок</span><b id="over-fish">0</b></div>
+        <div><span data-i18n="over.coins">Монеты</span><b id="over-coins">+0</b></div>
+      </div>
+      <button class="btn btn-reward" id="btn-revive">
+        <svg><use href="#i-play"/></svg>
+        <span data-i18n="over.continue">Продолжить</span>
+        <em class="ad-badge" data-i18n="common.ad">реклама</em>
+      </button>
+      <button class="btn btn-primary" id="btn-again" data-i18n="over.again">Ещё раз</button>
+      <div class="btn-row">
+        <button class="btn btn-ad" id="btn-double">
+          <svg><use href="#i-ad"/></svg>
+          <span data-i18n="over.double">Удвоить монеты</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-menu" data-i18n="over.menu">В меню</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-pause" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="pause.title">Пауза</div>
+      <button class="btn btn-primary" id="btn-resume" data-i18n="pause.resume">Продолжить</button>
+      <button class="btn btn-ghost" id="btn-restart" data-i18n="pause.restart">Заново</button>
+      <button class="btn btn-ghost" id="btn-pause-menu" data-i18n="over.menu">В меню</button>
+      <div class="toggles">
+        <button class="toggle" id="btn-t-sound"><svg><use href="#i-sound"/></svg><span data-i18n="pause.sound">Звук</span><i></i></button>
+        <button class="toggle" id="btn-t-music"><svg><use href="#i-music"/></svg><span data-i18n="pause.music">Музыка</span><i></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-shop" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="shop.title">Магазин</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="shop-coins">0</span></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="skins" data-i18n="shop.skins">Скины</button>
+      <button class="tab" data-tab="coins" data-i18n="shop.coins">Монеты</button>
+    </div>
+    <div class="scroll">
+      <div id="shop-grid" class="shop-grid"></div>
+      <div id="shop-iap" class="iap-list hidden"></div>
+    </div>
+  </div>
+
+  <div id="scr-daily" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="daily.title">Бонусы</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="daily-coins">0</span></div>
+    </div>
+    <div class="scroll">
+      <div class="card slim">
+        <div class="card-title small" data-i18n="daily.streakTitle">Ежедневный бонус</div>
+        <div class="daily-row" id="daily-row"></div>
+        <button class="btn btn-primary" id="btn-claim" data-i18n="daily.claim">Забрать</button>
+      </div>
+      <div class="card slim">
+        <div class="card-title small" data-i18n="missions.title">Задания дня</div>
+        <div id="missions" class="missions"></div>
+      </div>
+      <button class="btn btn-ad" id="btn-free-coins">
+        <svg><use href="#i-ad"/></svg>
+        <span id="free-coins-text" data-i18n="daily.freeCoins">Бесплатные монеты</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="scr-leaders" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="leaders.title">Лидеры</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="leaders-coins">0</span></div>
+    </div>
+    <div class="scroll">
+      <div id="leaders-list" class="leaders-list"></div>
+    </div>
+  </div>
+
+  <div id="scr-settings" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="settings.title">Настройки</div>
+      <div class="spacer"></div>
+    </div>
+    <div class="scroll">
+      <div class="card slim">
+        <div class="toggles column">
+          <button class="toggle" id="btn-s-sound"><svg><use href="#i-sound"/></svg><span data-i18n="settings.sound">Звуки</span><i></i></button>
+          <button class="toggle" id="btn-s-music"><svg><use href="#i-music"/></svg><span data-i18n="settings.music">Музыка</span><i></i></button>
+        </div>
+      </div>
+      <div class="card slim">
+        <div class="card-title small" data-i18n="settings.controls">Управление</div>
+        <p class="text" data-i18n="settings.controlsText">Тап, клик или пробел — сменить орбиту. Собирай рыбок, уходи от астероидов. Три рыбки подряд — множитель.</p>
+      </div>
+      <div class="card slim">
+        <button class="btn btn-ghost" id="btn-reset" data-i18n="settings.reset">Сбросить прогресс</button>
+        <p class="text tiny" data-i18n="settings.resetHint">Удалит монеты, скины и рекорд.</p>
+      </div>
+      <div class="version">Мяу-Орбита v1.0</div>
+    </div>
+  </div>
+
+  <div id="scr-howto" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="menu.howto">Как играть</div>
+      <div class="howto">
+        <div class="howto-row"><b>1</b><span data-i18n="howto.1">Тапай, чтобы перескочить на другую орбиту.</span></div>
+        <div class="howto-row"><b>2</b><span data-i18n="howto.2">Собирай рыбок — они дают очки и монеты.</span></div>
+        <div class="howto-row"><b>3</b><span data-i18n="howto.3">Не касайся астероидов. Щит спасает один раз.</span></div>
+        <div class="howto-row"><b>4</b><span data-i18n="howto.4">На 1200 очков открывается третья орбита.</span></div>
+      </div>
+      <button class="btn btn-primary" data-close data-i18n="common.ok">Понятно</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/i18n.js"></script>
+<script src="js/sdk.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/save.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
