@@ -1,0 +1,4557 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Мяу-Орбита</title>
+<meta name="theme-color" content="#0a0716">
+<meta name="description" content="Космический кот на орбите: собирай рыбки, уклоняйся от астероидов.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="application-name" content="МЯУ·ОРБИТА">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="МЯУ·ОРБИТА">
+<style>
+:root{
+  --bg:#0a0716;
+  --panel:rgba(22,17,44,.86);
+  --panel-2:rgba(32,25,62,.9);
+  --line:rgba(255,255,255,.10);
+  --line-2:rgba(255,255,255,.18);
+  --txt:#f4f0ff;
+  --muted:#a99ecd;
+  --accent:#8b5cff;
+  --accent-2:#5a2fd8;
+  --pink:#ff5fa2;
+  --gold:#ffd166;
+  --ok:#67e8a5;
+  --danger:#ff5c5c;
+  --radius:22px;
+  --content:460px;
+  --shadow:0 18px 50px rgba(0,0,0,.55);
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt)}
+body{
+  font-family:"Segoe UI",system-ui,-apple-system,"Roboto","Helvetica Neue",Arial,sans-serif;
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+  overscroll-behavior:none;
+}
+button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer;outline:none}
+.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+svg{width:100%;height:100%;display:block;fill:none}
+
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+
+#ui{position:fixed;inset:0;z-index:2;pointer-events:none}
+#ui button,#ui .tile,#ui .card,#ui .skin-card,#ui .iap-item,#ui .mission,#ui .toggle{pointer-events:auto}
+#ui .screen{pointer-events:none}
+#ui .screen.show{pointer-events:auto}
+
+.hidden{display:none !important}
+
+/* ---------- screens ---------- */
+.screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--safe-t) + 14px) calc(var(--safe-r) + 16px) calc(var(--safe-b) + 16px) calc(var(--safe-l) + 16px);
+  opacity:0;visibility:hidden;
+  transition:opacity .2s ease, transform .2s ease;
+  transform:scale(.985);
+  overflow:hidden;
+}
+.screen.show{opacity:1;visibility:visible;transform:none}
+.screen::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(12,8,28,.45),rgba(10,7,22,.86) 70%);
+}
+#scr-menu::before{background:linear-gradient(180deg,rgba(10,7,22,.55) 0%,rgba(10,7,22,0) 42%,rgba(10,7,22,.72) 100%)}
+
+.logo{
+  font-size:clamp(28px,8vw,44px);white-space:nowrap;
+  font-weight:900;letter-spacing:.02em;line-height:1;
+  background:linear-gradient(180deg,#fff 0%,#d9ccff 55%,#a98bff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(139,92,255,.75));
+  text-align:center;
+}
+.logo span{color:var(--pink);-webkit-text-fill-color:var(--pink);filter:drop-shadow(0 0 12px rgba(255,95,162,.9))}
+.logo.small{font-size:34px;margin-bottom:26px}
+
+/* ---------- top bar ---------- */
+.top-bar{
+  width:100%;max-width:var(--content);display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.coin-pill{
+  display:flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;
+  background:rgba(20,15,40,.72);border:1px solid var(--line);border-radius:999px;
+  font-weight:800;font-size:16px;backdrop-filter:blur(10px);
+}
+.coin-pill svg{width:22px;height:22px;color:var(--gold)}
+.coin-pill.small{height:36px;font-size:14px;padding:0 12px 0 9px}
+.coin-pill.small svg{width:18px;height:18px}
+
+.icon-btn{
+  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  background:rgba(20,15,40,.72);border:1px solid var(--line);
+  color:#dcd4ff;transition:transform .12s,background .15s;
+}
+.icon-btn svg{width:22px;height:22px}
+.icon-btn.small{width:38px;height:38px;border-radius:12px}
+.icon-btn:active{transform:scale(.92);background:rgba(139,92,255,.22)}
+
+/* ---------- menu ---------- */
+.menu-hero{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;
+  width:100%;max-width:var(--content);text-align:center;padding:4.5vh 0 6px;
+}
+.tagline{color:var(--muted);font-size:14px;font-weight:600;letter-spacing:.01em;max-width:280px}
+.best-line{
+  margin-top:6px;display:flex;align-items:center;gap:8px;
+  padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  font-size:13px;color:var(--muted);font-weight:600;
+}
+.best-line b{color:var(--gold);font-size:15px;font-variant-numeric:tabular-nums}
+
+.menu-actions{
+  width:100%;max-width:var(--content);display:flex;flex-direction:column;gap:10px;padding-bottom:4px;
+}
+.btn{
+  position:relative;display:flex;align-items:center;justify-content:center;gap:9px;
+  min-height:56px;padding:0 20px;border-radius:18px;
+  font-size:17px;font-weight:800;letter-spacing:.01em;
+  border:1px solid transparent;transition:transform .1s ease,filter .15s ease,background .15s;
+  overflow:hidden;
+}
+.btn:active{transform:scale(.965)}
+.btn svg{width:22px;height:22px;flex:0 0 auto;fill:currentColor}
+.btn-primary{
+  background:linear-gradient(180deg,#9b6dff 0%,#7443f0 52%,#5c2ed6 100%);
+  color:#fff;box-shadow:0 12px 30px rgba(116,67,240,.42),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.btn-primary::after{
+  content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 55%);
+  pointer-events:none;
+}
+.btn-play{min-height:66px;font-size:20px;border-radius:22px}
+.btn-play .ic-play{width:26px;height:26px}
+.btn-ghost{background:rgba(255,255,255,.055);border-color:var(--line);color:#e6dfff}
+.btn-ghost:active{background:rgba(255,255,255,.1)}
+.btn-ad{background:rgba(103,232,165,.1);border-color:rgba(103,232,165,.32);color:#b7f7d4;font-size:15px;min-height:52px}
+.btn-ad svg{color:var(--ok)}
+.btn-ad:active{background:rgba(103,232,165,.18)}
+.btn-reward{
+  background:linear-gradient(180deg,#ffd166 0%,#ffab3d 100%);
+  color:#2a1a00;font-weight:900;
+  box-shadow:0 12px 30px rgba(255,171,61,.32),inset 0 1px 0 rgba(255,255,255,.5);
+}
+.btn-reward svg{color:#2a1a00}
+.ad-badge{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  font-style:normal;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  background:rgba(0,0,0,.18);padding:3px 6px;border-radius:6px;opacity:.78;
+}
+
+.menu-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:12px 4px 11px;border-radius:18px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);
+  color:#d9d0ff;font-size:11.5px;font-weight:700;letter-spacing:.01em;
+  transition:transform .1s,background .15s;
+}
+.tile svg{width:23px;height:23px;color:#c2b2ff;fill:none;stroke:currentColor}
+.tile:active{transform:scale(.95);background:rgba(139,92,255,.16)}
+.tile .dot{
+  position:absolute;top:8px;right:10px;width:8px;height:8px;border-radius:50%;
+  background:var(--pink);box-shadow:0 0 10px var(--pink);
+}
+.menu-foot{display:flex;justify-content:center;align-items:center;gap:2px;flex-wrap:wrap;padding-top:10px;font-size:12px}
+.linkish{color:#8d81b8;font-size:12.5px;font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:8px}
+
+/* ---------- cards ---------- */
+.card{
+  width:100%;max-width:var(--content);margin:auto;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  padding:20px 18px;display:flex;flex-direction:column;gap:10px;
+  animation:cardIn .22s cubic-bezier(.2,1.2,.4,1) both;
+}
+@keyframes cardIn{from{transform:translateY(14px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.card.slim{padding:16px;gap:12px}
+.card-title{text-align:center;font-size:22px;font-weight:900;letter-spacing:.01em}
+.card-title.small{font-size:15px;font-weight:800;text-align:left;color:#d7cdff;letter-spacing:.02em}
+.card-over{gap:12px}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{flex:1;min-height:50px;font-size:13.5px;white-space:nowrap;padding:0 12px;gap:6px}
+.btn-row .btn svg{width:18px;height:18px}
+
+.over-label{text-align:center;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.over-newbest{
+  align-self:center;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;
+  background:rgba(255,209,102,.16);color:var(--gold);border:1px solid rgba(255,209,102,.4);
+  animation:pulseBadge 1.4s ease-in-out infinite;
+}
+@keyframes pulseBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.big-score{
+  text-align:center;font-size:clamp(44px,13vw,62px);font-weight:900;line-height:1;letter-spacing:-.01em;
+  background:linear-gradient(180deg,#fff,#b9a3ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 22px rgba(139,92,255,.5));font-variant-numeric:tabular-nums;
+}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 6px}
+.stats>div{
+  background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:14px;
+  padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.stats span{font-size:10.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.stats b{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+#over-coins{color:var(--gold)}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;z-index:3}
+.hud-top{
+  position:absolute;top:calc(var(--safe-t) + 10px);left:calc(var(--safe-l) + 14px);right:calc(var(--safe-r) + 14px);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+}
+.hud-coins{
+  display:flex;align-items:center;gap:7px;height:36px;padding:0 13px 0 9px;border-radius:999px;
+  background:rgba(12,8,26,.6);border:1px solid var(--line);font-weight:800;font-size:14px;
+  backdrop-filter:blur(8px);font-variant-numeric:tabular-nums;
+}
+.hud-coins svg{width:18px;height:18px;color:var(--gold)}
+.hud-center{display:flex;flex-direction:column;align-items:center;pointer-events:none}
+#hud-score{
+  font-size:40px;font-weight:900;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  text-shadow:0 2px 20px rgba(139,92,255,.7),0 1px 0 rgba(0,0,0,.4);
+}
+.combo{
+  margin-top:5px;font-size:13px;font-weight:900;padding:3px 10px;border-radius:999px;
+  background:rgba(255,95,162,.18);color:#ffb6d3;border:1px solid rgba(255,95,162,.45);
+  animation:comboPop .22s ease;
+}
+@keyframes comboPop{0%{transform:scale(.7)}100%{transform:scale(1)}}
+.hud-power{
+  position:absolute;top:calc(var(--safe-t) + 58px);left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;font-size:11px;font-weight:800;color:#c9f7e0;
+}
+.hud-power .pchip{
+  background:rgba(103,232,165,.16);border:1px solid rgba(103,232,165,.4);
+  padding:3px 9px;border-radius:999px;backdrop-filter:blur(6px);
+}
+.hint{position:absolute;left:0;right:0;bottom:calc(var(--safe-b) + 64px);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.hint-finger{font-size:30px;animation:tapHint 1.3s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(255,255,255,.5))}
+.hint-text{font-size:13px;font-weight:700;color:#cfc4ff;background:rgba(12,8,26,.6);padding:6px 14px;border-radius:999px;border:1px solid var(--line)}
+@keyframes tapHint{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.08)}}
+
+/* ---------- scroll screens ---------- */
+.screen-head{
+  width:100%;max-width:var(--content);display:flex;align-items:center;gap:10px;padding-bottom:10px;
+}
+.head-title{flex:1;font-size:18px;font-weight:800;letter-spacing:.01em}
+.spacer{width:38px}
+.scroll{
+  width:100%;max-width:var(--content);flex:1;overflow-y:auto;overflow-x:hidden;
+  display:flex;flex-direction:column;gap:10px;padding-bottom:16px;
+  scrollbar-width:none;
+}
+.scroll::-webkit-scrollbar{display:none}
+.scroll>*{width:100%;max-width:100%;margin-left:auto;margin-right:auto}
+
+.tabs{
+  width:100%;max-width:var(--content);display:flex;gap:6px;padding:4px;margin-bottom:10px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;
+}
+.tab{flex:1;height:38px;border-radius:11px;font-size:13.5px;font-weight:800;color:var(--muted);transition:background .15s,color .15s}
+.tab.active{background:rgba(139,92,255,.3);color:#fff;box-shadow:0 4px 14px rgba(139,92,255,.25)}
+
+/* shop */
+.shop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.skin-card{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:transform .12s,border-color .15s,background .15s;
+}
+.skin-card:active{transform:scale(.97)}
+.skin-card.owned{border-color:rgba(139,92,255,.35)}
+.skin-card.equipped{border-color:rgba(255,209,102,.6);background:rgba(255,209,102,.07)}
+.skin-card canvas{width:72px;height:72px;display:block}
+.skin-name{font-size:13px;font-weight:800;text-align:center;line-height:1.15}
+.skin-price{
+  display:flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;color:var(--gold);
+  font-variant-numeric:tabular-nums;
+}
+.skin-price svg{width:15px;height:15px;color:var(--gold)}
+.skin-card .state{
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ok);
+}
+.skin-card.locked .skin-name{color:#a99ecd}
+.skin-card .badge-new{
+  position:absolute;top:8px;right:8px;font-size:9px;font-weight:900;text-transform:uppercase;
+  background:var(--pink);color:#2a0014;padding:2px 6px;border-radius:6px;
+}
+.iap-list{display:flex;flex-direction:column;gap:10px}
+.iap-item{
+  display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;
+  background:var(--panel);border:1px solid var(--line);text-align:left;
+}
+.iap-item .iap-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,209,102,.14);color:var(--gold);flex:0 0 auto}
+.iap-item .iap-ic svg{width:22px;height:22px}
+.iap-item .iap-txt{flex:1;display:flex;flex-direction:column;gap:2px}
+.iap-item b{font-size:14px}
+.iap-item small{font-size:11px;color:var(--muted)}
+.iap-price{font-weight:800;font-size:14px;color:var(--gold);white-space:nowrap}
+
+/* daily */
+.scroll .card{margin:0}
+.daily-row{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.day-cell{
+  aspect-ratio:1/1.3;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;
+  font-size:8px;font-weight:700;color:var(--muted);padding:2px 0;
+}
+.day-cell b{font-size:10.5px;color:#e8e0ff;font-variant-numeric:tabular-nums}
+.day-cell svg{width:13px;height:13px;color:var(--gold)}
+.day-cell.claimed{background:rgba(103,232,165,.1);border-color:rgba(103,232,165,.3);color:rgba(103,232,165,.8)}
+.day-cell.today{background:rgba(139,92,255,.22);border-color:rgba(139,92,255,.6);box-shadow:0 0 16px rgba(139,92,255,.3)}
+.day-cell .dv{display:flex;align-items:center;justify-content:center;height:14px}
+.text{font-size:12.5px;line-height:1.5;color:var(--muted)}
+.text.tiny{font-size:11px}
+.missions{display:flex;flex-direction:column;gap:8px}
+.mission{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:13px;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);
+}
+.mission .m-txt{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.mission .m-name{font-size:12.5px;font-weight:700}
+.mission .m-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.mission .m-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--pink));border-radius:99px;transition:width .3s}
+.mission .m-prog{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.m-claim{
+  flex:0 0 auto;padding:7px 10px;border-radius:10px;font-size:11px;font-weight:800;
+  background:rgba(103,232,165,.15);color:#a7f3cd;border:1px solid rgba(103,232,165,.35);
+}
+.m-claim:disabled{opacity:.4;background:rgba(255,255,255,.06);color:var(--muted);border-color:var(--line)}
+.m-claim.done{background:rgba(255,255,255,.05);color:rgba(255,255,255,.35);border-color:transparent}
+
+/* leaders */
+.leaders-list{display:flex;flex-direction:column;gap:6px}
+.lb-row{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;
+  background:var(--panel);border:1px solid var(--line);
+}
+.lb-row.me{border-color:rgba(139,92,255,.55);background:rgba(139,92,255,.16)}
+.lb-rank{width:26px;font-size:13px;font-weight:900;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.lb-row:nth-child(1) .lb-rank{color:var(--gold)}
+.lb-row:nth-child(2) .lb-rank{color:#cfd6e6}
+.lb-row:nth-child(3) .lb-rank{color:#e0a377}
+.lb-name{flex:1;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-score{font-size:14px;font-weight:800;color:#d9ceff;font-variant-numeric:tabular-nums}
+.lb-empty{text-align:center;color:var(--muted);font-size:13px;padding:30px 10px;line-height:1.5}
+
+/* toggles */
+.toggles{display:flex;gap:8px;margin-top:2px}
+.toggles.column{flex-direction:column;margin:0}
+.toggle{
+  flex:1;display:flex;align-items:center;gap:9px;height:46px;padding:0 12px;border-radius:13px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:13px;font-weight:700;color:#d6cdf5;
+}
+.toggle svg{width:19px;height:19px;flex:0 0 auto;color:#b9a9ff}
+.toggle i{
+  margin-left:auto;width:38px;height:22px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;flex:0 0 auto;transition:background .18s;
+}
+.toggle i::after{
+  content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;
+  transition:transform .18s;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.toggle.on i{background:linear-gradient(90deg,var(--accent),var(--pink))}
+.toggle.on i::after{transform:translateX(16px)}
+.toggle.off{opacity:.62}
+
+/* howto */
+.howto{display:flex;flex-direction:column;gap:10px;margin:4px 0 8px}
+.howto-row{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.42;color:#d8d0f5}
+.howto-row b{
+  flex:0 0 auto;width:22px;height:22px;border-radius:8px;display:grid;place-items:center;
+  background:rgba(139,92,255,.25);color:#cfbeff;font-size:11px;
+}
+.version{text-align:center;font-size:11px;color:#6f6495;padding:6px 0 20px}
+
+/* spinner */
+.spinner{
+  width:34px;height:34px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--safe-b) + 26px);transform:translate(-50%,20px);
+  z-index:50;padding:11px 18px;border-radius:14px;max-width:86vw;
+  background:rgba(28,20,56,.96);border:1px solid var(--line-2);
+  font-size:13px;font-weight:700;text-align:center;color:#f0eaff;
+  box-shadow:0 14px 40px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.good{border-color:rgba(103,232,165,.5);color:#c6ffe0}
+.toast.bad{border-color:rgba(255,92,92,.45);color:#ffc9c9}
+
+@media (max-height:640px){
+  .logo{font-size:30px}
+  .menu-hero{gap:8px}
+  .btn-play{min-height:58px;font-size:18px}
+  .card{padding:16px 15px;gap:8px}
+  .big-score{font-size:44px}
+  .stats{margin:0}
+  .hint{bottom:calc(var(--safe-b) + 40px)}
+}
+@media (min-width:560px){
+  .menu-actions{max-width:var(--content)}
+}
+
+</style>
+</head>
+<body>
+
+<svg class="svg-defs" aria-hidden="true">
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 6.5v11M9.4 9.2h4a2 2 0 010 4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 5h2.2l2 10.4h9.6L19 8H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19" r="1.6" fill="currentColor"/><circle cx="17" cy="19" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 01-10 0V4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 5H4v2a3 3 0 003 3M17 5h3v2a3 3 0 01-3 3M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 13h16M12 9v11M12 9c-2.6 0-4-1-4-2.6C8 5 9 4.4 10 4.6 11.6 5 12 7.4 12 9zm0 0c2.6 0 4-1 4-2.6 0-1.4-1-2-2-1.8C12.4 5 12 7.4 12 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5l1.2 2.1 2.4-.5.5 2.4 2.1 1.2-1.2 2.1 1.2 2.1-2.1 1.2-.5 2.4-2.4-.5L12 20.5l-1.2-2.1-2.4.5-.5-2.4-2.1-1.2L6.9 12 5.7 9.9l2.1-1.2.5-2.4 2.4.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1.2" fill="currentColor"/><rect x="13.5" y="5" width="3.5" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-ad" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8.5l6 3.5-6 3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3L12 5v14L7 14.5H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 010 7M18 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16.5" cy="16" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+</svg>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-coins"><svg><use href="#i-coin"/></svg><span id="hud-coins">0</span></div>
+      <div class="hud-center">
+        <div id="hud-score">0</div>
+        <div id="hud-combo" class="combo hidden">x1</div>
+      </div>
+      <button id="btn-pause" class="icon-btn small"><svg><use href="#i-pause"/></svg></button>
+    </div>
+    <div id="hud-power" class="hud-power hidden"></div>
+    <div id="hint" class="hint hidden">
+      <div class="hint-finger">☝</div>
+      <div class="hint-text" data-i18n="tutorial.tap">Тапни, чтобы сменить орбиту</div>
+    </div>
+  </div>
+
+  <div id="scr-loading" class="screen show">
+    <div class="logo small">МЯУ<span>·</span>ОРБИТА</div>
+    <div class="spinner"></div>
+  </div>
+
+  <div id="scr-menu" class="screen">
+    <div class="top-bar">
+      <div class="coin-pill"><svg><use href="#i-coin"/></svg><span id="menu-coins">0</span></div>
+      <button class="icon-btn" id="btn-settings" aria-label="settings"><svg><use href="#i-gear"/></svg></button>
+    </div>
+
+    <div class="menu-hero">
+      <div class="logo">МЯУ<span>·</span>ОРБИТА</div>
+      <div class="tagline" data-i18n="menu.tagline">Космический кот, рыбки и астероиды</div>
+      <div class="best-line"><span data-i18n="menu.best">Рекорд</span><b id="menu-best">0</b></div>
+    </div>
+
+    <div class="menu-actions">
+      <button class="btn btn-primary btn-play" id="btn-play">
+        <svg class="ic-play"><use href="#i-play"/></svg>
+        <span data-i18n="menu.play">Играть</span>
+      </button>
+      <div class="menu-row">
+        <button class="tile" id="btn-shop">
+          <svg><use href="#i-cart"/></svg>
+          <span data-i18n="menu.shop">Магазин</span>
+          <i class="dot hidden" id="dot-shop"></i>
+        </button>
+        <button class="tile" id="btn-leaders">
+          <svg><use href="#i-trophy"/></svg>
+          <span data-i18n="menu.leaders">Лидеры</span>
+        </button>
+        <button class="tile" id="btn-daily">
+          <svg><use href="#i-gift"/></svg>
+          <span data-i18n="menu.daily">Бонусы</span>
+          <i class="dot hidden" id="dot-daily"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="menu-foot">
+      <button class="linkish" id="btn-howto" data-i18n="menu.howto">Как играть</button>
+      <button class="linkish hidden" id="btn-install" data-i18n="install.button">Установить</button>
+    </div>
+  </div>
+
+  <div id="scr-over" class="screen">
+    <div class="card card-over">
+      <div class="over-label" data-i18n="over.title">Забег окончен</div>
+      <div class="over-newbest hidden" id="over-newbest" data-i18n="over.newbest">Новый рекорд!</div>
+      <div class="big-score" id="over-score">0</div>
+      <div class="stats">
+        <div><span data-i18n="over.best">Рекорд</span><b id="over-best">0</b></div>
+        <div><span data-i18n="over.fish">Рыбок</span><b id="over-fish">0</b></div>
+        <div><span data-i18n="over.coins">Монеты</span><b id="over-coins">+0</b></div>
+      </div>
+      <button class="btn btn-reward" id="btn-revive">
+        <svg><use href="#i-play"/></svg>
+        <span data-i18n="over.continue">Продолжить</span>
+        <em class="ad-badge" data-i18n="common.ad">реклама</em>
+      </button>
+      <button class="btn btn-primary" id="btn-again" data-i18n="over.again">Ещё раз</button>
+      <div class="btn-row">
+        <button class="btn btn-ad" id="btn-double">
+          <svg><use href="#i-ad"/></svg>
+          <span data-i18n="over.double">Удвоить монеты</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-menu" data-i18n="over.menu">В меню</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-pause" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="pause.title">Пауза</div>
+      <button class="btn btn-primary" id="btn-resume" data-i18n="pause.resume">Продолжить</button>
+      <button class="btn btn-ghost" id="btn-restart" data-i18n="pause.restart">Заново</button>
+      <button class="btn btn-ghost" id="btn-pause-menu" data-i18n="over.menu">В меню</button>
+      <div class="toggles">
+        <button class="toggle" id="btn-t-sound"><svg><use href="#i-sound"/></svg><span data-i18n="pause.sound">Звук</span><i></i></button>
+        <button class="toggle" id="btn-t-music"><svg><use href="#i-music"/></svg><span data-i18n="pause.music">Музыка</span><i></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="scr-shop" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="shop.title">Магазин</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="shop-coins">0</span></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="skins" data-i18n="shop.skins">Скины</button>
+      <button class="tab" data-tab="coins" data-i18n="shop.coins">Монеты</button>
+    </div>
+    <div class="scroll">
+      <div id="shop-grid" class="shop-grid"></div>
+      <div id="shop-iap" class="iap-list hidden"></div>
+    </div>
+  </div>
+
+  <div id="scr-daily" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="daily.title">Бонусы</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="daily-coins">0</span></div>
+    </div>
+    <div class="scroll">
+      <div class="card slim">
+        <div class="card-title small" data-i18n="daily.streakTitle">Ежедневный бонус</div>
+        <div class="daily-row" id="daily-row"></div>
+        <button class="btn btn-primary" id="btn-claim" data-i18n="daily.claim">Забрать</button>
+      </div>
+      <div class="card slim">
+        <div class="card-title small" data-i18n="missions.title">Задания дня</div>
+        <div id="missions" class="missions"></div>
+      </div>
+      <button class="btn btn-ad" id="btn-free-coins">
+        <svg><use href="#i-ad"/></svg>
+        <span id="free-coins-text" data-i18n="daily.freeCoins">Бесплатные монеты</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="scr-leaders" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="leaders.title">Лидеры</div>
+      <div class="coin-pill small"><svg><use href="#i-coin"/></svg><span id="leaders-coins">0</span></div>
+    </div>
+    <div class="scroll">
+      <div id="leaders-list" class="leaders-list"></div>
+    </div>
+  </div>
+
+  <div id="scr-settings" class="screen">
+    <div class="screen-head">
+      <button class="icon-btn small" data-close><svg><use href="#i-back"/></svg></button>
+      <div class="head-title" data-i18n="settings.title">Настройки</div>
+      <div class="spacer"></div>
+    </div>
+    <div class="scroll">
+      <div class="card slim">
+        <div class="toggles column">
+          <button class="toggle" id="btn-s-sound"><svg><use href="#i-sound"/></svg><span data-i18n="settings.sound">Звуки</span><i></i></button>
+          <button class="toggle" id="btn-s-music"><svg><use href="#i-music"/></svg><span data-i18n="settings.music">Музыка</span><i></i></button>
+        </div>
+      </div>
+      <div class="card slim">
+        <div class="card-title small" data-i18n="settings.controls">Управление</div>
+        <p class="text" data-i18n="settings.controlsText">Тап, клик или пробел — сменить орбиту. Собирай рыбок, уходи от астероидов. Три рыбки подряд — множитель.</p>
+      </div>
+      <div class="card slim hidden" id="card-install">
+        <div class="card-title small" data-i18n="install.title">Установить приложение</div>
+        <p class="text" data-i18n="install.hint">Игра откроется в отдельном окне и будет работать без интернета.</p>
+        <button class="btn btn-primary" id="btn-install-settings" data-i18n="install.button">Установить</button>
+      </div>
+      <div class="card slim">
+        <button class="btn btn-ghost" id="btn-reset" data-i18n="settings.reset">Сбросить прогресс</button>
+        <p class="text tiny" data-i18n="settings.resetHint">Удалит монеты, скины и рекорд.</p>
+      </div>
+      <div class="version">Мяу-Орбита v1.0</div>
+    </div>
+  </div>
+
+  <div id="scr-install" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="install.title">Установить приложение</div>
+      <p class="text" id="install-text" data-i18n="install.hint">Игра откроется в отдельном окне и будет работать без интернета.</p>
+      <p class="text tiny" data-i18n="install.note">Иконка появится на рабочем столе или главном экране, как у обычного приложения.</p>
+      <button class="btn btn-primary" data-close data-i18n="common.ok">Понятно</button>
+    </div>
+  </div>
+
+  <div id="scr-howto" class="screen">
+    <div class="card">
+      <div class="card-title" data-i18n="menu.howto">Как играть</div>
+      <div class="howto">
+        <div class="howto-row"><b>1</b><span data-i18n="howto.1">Тапай, чтобы перескочить на другую орбиту.</span></div>
+        <div class="howto-row"><b>2</b><span data-i18n="howto.2">Собирай рыбок — они дают очки и монеты.</span></div>
+        <div class="howto-row"><b>3</b><span data-i18n="howto.3">Не касайся астероидов. Щит спасает один раз.</span></div>
+        <div class="howto-row"><b>4</b><span data-i18n="howto.4">На 1200 очков открывается третья орбита.</span></div>
+      </div>
+      <button class="btn btn-primary" data-close data-i18n="common.ok">Понятно</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* Локализация: RU / EN / TR */
+(function () {
+  'use strict';
+
+  var I18N = {
+    ru: {
+      menu: {
+        logo1: 'МЯУ',
+        logo2: 'ОРБИТА',
+        tagline: 'Космический кот, рыбки и астероиды',
+        best: 'Рекорд',
+        play: 'Играть',
+        shop: 'Магазин',
+        leaders: 'Лидеры',
+        daily: 'Бонусы',
+        howto: 'Как играть'
+      },
+      tutorial: { tap: 'Тапни, чтобы сменить орбиту' },
+      over: {
+        title: 'Забег окончен',
+        newbest: 'Новый рекорд!',
+        best: 'Рекорд',
+        fish: 'Рыбок',
+        coins: 'Монеты',
+        continue: 'Продолжить',
+        again: 'Ещё раз',
+        double: 'Удвоить монеты',
+        doubled: 'Монеты удвоены',
+        menu: 'В меню'
+      },
+      common: { ad: 'реклама', ok: 'Понятно', close: 'Закрыть', cancel: 'Отмена', loading: 'Загрузка…' },
+      install: {
+        title: 'Установить приложение',
+        button: 'Установить',
+        hint: 'Игра откроется в отдельном окне и будет работать без интернета.',
+        note: 'Иконка появится на рабочем столе или главном экране, как у обычного приложения.',
+        ios: 'В Safari нажми «Поделиться» и выбери «На экран „Домой“».',
+        android: 'В меню браузера выбери «Установить приложение» или «Добавить на главный экран».',
+        desktop: 'Нажми значок установки в адресной строке браузера.',
+        done: 'Готово — игра установлена'
+      },
+      power: { shield: 'ЩИТ', magnet: 'МАГНИТ', slow: 'ЗАМЕДЛЕНИЕ' },
+      event: { third: 'ТРЕТЬЯ ОРБИТА!' },
+      pause: {
+        title: 'Пауза',
+        resume: 'Продолжить',
+        restart: 'Заново',
+        sound: 'Звук',
+        music: 'Музыка'
+      },
+      shop: {
+        title: 'Магазин',
+        skins: 'Скины',
+        coins: 'Монеты',
+        buy: 'Купить',
+        equip: 'Выбрать',
+        equipped: 'Выбран',
+        owned: 'Куплен',
+        needCoins: 'Не хватает монет',
+        iapTitle: 'Наборы монет',
+        iapSoon: 'Покупки станут доступны после публикации игры в Яндекс Играх.',
+        noAds: 'Убрать рекламу',
+        noAdsDesc: 'Без принудительных роликов. Награды за рекламу останутся.',
+        ownedNoAds: 'Уже куплено'
+      },
+      daily: {
+        title: 'Бонусы',
+        streakTitle: 'Ежедневный бонус',
+        claim: 'Забрать',
+        claimed: 'Получено',
+        freeCoins: 'Бесплатные монеты',
+        freeLeft: 'Бесплатные монеты ({n}/{max})',
+        wait: 'Через {s} с',
+        day: 'День {n}',
+        streak: 'Серия: {n} дн.'
+      },
+      missions: {
+        title: 'Задания дня',
+        claim: 'Забрать',
+        done: 'Готово',
+        m1: 'Сыграй 5 забегов',
+        m2: 'Собери 40 рыбок',
+        m3: 'Набери 2500 очков'
+      },
+      leaders: {
+        title: 'Лидеры',
+        loading: 'Загружаем топ…',
+        empty: 'Пока пусто. Стань первым!',
+        error: 'Рейтинг доступен в Яндекс Играх',
+        anon: 'Игрок'
+      },
+      settings: {
+        title: 'Настройки',
+        sound: 'Звуки',
+        music: 'Музыка',
+        controls: 'Управление',
+        controlsText: 'Тап, клик или пробел — сменить орбиту. Собирай рыбок, уходи от астероидов. Три рыбки подряд — множитель.',
+        reset: 'Сбросить прогресс',
+        resetHint: 'Удалит монеты, скины и рекорд.',
+        resetAsk: 'Точно сбросить весь прогресс?'
+      },
+      howto: {
+        1: 'Тапай, чтобы перескочить на другую орбиту.',
+        2: 'Собирай рыбок — они дают очки и монеты.',
+        3: 'Не касайся астероидов. Щит спасает один раз.',
+        4: 'На 1000 очков открывается третья орбита.'
+      },
+      toast: {
+        coins: '+{n} монет',
+        adUnavailable: 'Реклама недоступна, попробуй позже',
+        adError: 'Не удалось показать рекламу',
+        rewardFail: 'Награда не получена',
+        noAds: 'Реклама отключена. Спасибо!',
+        buyFail: 'Покупка не завершена',
+        resetDone: 'Прогресс сброшен',
+        needCoins: 'Не хватает монет',
+        bought: 'Куплено: {name}',
+        welcome: 'Добро пожаловать!',
+        saved: 'Сохранено'
+      },
+      skins: {
+        classic: 'Мурзик', neon: 'Неон', ninja: 'Ниндзя', robot: 'Робот',
+        unicorn: 'Единорог', void: 'Пустота', gold: 'Золотой', lava: 'Лава',
+        ice: 'Лёд', cyber: 'Кибер', rainbow: 'Радуга', angel: 'Ангел'
+      }
+    },
+
+    en: {
+      menu: {
+        logo1: 'MEOW',
+        logo2: 'ORBIT',
+        tagline: 'A space cat, fish and asteroids',
+        best: 'Best',
+        play: 'Play',
+        shop: 'Shop',
+        leaders: 'Leaders',
+        daily: 'Bonuses',
+        howto: 'How to play'
+      },
+      tutorial: { tap: 'Tap to switch orbit' },
+      over: {
+        title: 'Run over',
+        newbest: 'New record!',
+        best: 'Best',
+        fish: 'Fish',
+        coins: 'Coins',
+        continue: 'Continue',
+        again: 'One more',
+        double: 'Double coins',
+        doubled: 'Coins doubled',
+        menu: 'Menu'
+      },
+      common: { ad: 'ad', ok: 'Got it', close: 'Close', cancel: 'Cancel', loading: 'Loading…' },
+      install: {
+        title: 'Install the game',
+        button: 'Install',
+        hint: 'The game opens in its own window and works offline.',
+        note: 'The icon will appear on your desktop or home screen like a regular app.',
+        ios: 'In Safari tap Share and choose “Add to Home Screen”.',
+        android: 'In the browser menu choose “Install app” or “Add to Home screen”.',
+        desktop: 'Click the install icon in the browser address bar.',
+        done: 'Done — the game is installed'
+      },
+      power: { shield: 'SHIELD', magnet: 'MAGNET', slow: 'SLOW-MO' },
+      event: { third: 'THIRD ORBIT!' },
+      pause: {
+        title: 'Paused',
+        resume: 'Resume',
+        restart: 'Restart',
+        sound: 'Sound',
+        music: 'Music'
+      },
+      shop: {
+        title: 'Shop',
+        skins: 'Skins',
+        coins: 'Coins',
+        buy: 'Buy',
+        equip: 'Equip',
+        equipped: 'Equipped',
+        owned: 'Owned',
+        needCoins: 'Not enough coins',
+        iapTitle: 'Coin packs',
+        iapSoon: 'Purchases will be available after the game is published on Yandex Games.',
+        noAds: 'Remove ads',
+        noAdsDesc: 'No forced interstitials. Rewarded ads stay.',
+        ownedNoAds: 'Already purchased'
+      },
+      daily: {
+        title: 'Bonuses',
+        streakTitle: 'Daily bonus',
+        claim: 'Claim',
+        claimed: 'Claimed',
+        freeCoins: 'Free coins',
+        freeLeft: 'Free coins ({n}/{max})',
+        wait: 'In {s}s',
+        day: 'Day {n}',
+        streak: 'Streak: {n}d'
+      },
+      missions: {
+        title: 'Daily missions',
+        claim: 'Claim',
+        done: 'Done',
+        m1: 'Play 5 runs',
+        m2: 'Collect 40 fish',
+        m3: 'Score 2500 points'
+      },
+      leaders: {
+        title: 'Leaders',
+        loading: 'Loading top…',
+        empty: 'Empty for now. Be the first!',
+        error: 'Leaderboard is available in Yandex Games',
+        anon: 'Player'
+      },
+      settings: {
+        title: 'Settings',
+        sound: 'Sound',
+        music: 'Music',
+        controls: 'Controls',
+        controlsText: 'Tap, click or space to switch orbit. Collect fish, dodge asteroids. Three fish in a row — multiplier.',
+        reset: 'Reset progress',
+        resetHint: 'Deletes coins, skins and record.',
+        resetAsk: 'Reset all progress?'
+      },
+      howto: {
+        1: 'Tap to hop to another orbit.',
+        2: 'Collect fish — they give points and coins.',
+        3: 'Do not touch asteroids. A shield saves you once.',
+        4: 'At 1000 points the third orbit opens.'
+      },
+      toast: {
+        coins: '+{n} coins',
+        adUnavailable: 'Ad is unavailable, try later',
+        adError: 'Could not show the ad',
+        rewardFail: 'Reward not received',
+        noAds: 'Ads removed. Thank you!',
+        buyFail: 'Purchase not completed',
+        resetDone: 'Progress reset',
+        needCoins: 'Not enough coins',
+        bought: 'Bought: {name}',
+        welcome: 'Welcome!',
+        saved: 'Saved'
+      },
+      skins: {
+        classic: 'Whisker', neon: 'Neon', ninja: 'Ninja', robot: 'Robot',
+        unicorn: 'Unicorn', void: 'Void', gold: 'Golden', lava: 'Lava',
+        ice: 'Ice', cyber: 'Cyber', rainbow: 'Rainbow', angel: 'Angel'
+      }
+    },
+
+    tr: {
+      menu: {
+        logo1: 'MİYAV',
+        logo2: 'ORBİT',
+        tagline: 'Uzay kedisi, balıklar ve asteroitler',
+        best: 'Rekor',
+        play: 'Oyna',
+        shop: 'Mağaza',
+        leaders: 'Liderler',
+        daily: 'Bonuslar',
+        howto: 'Nasıl oynanır'
+      },
+      tutorial: { tap: 'Yörünge değiştirmek için dokun' },
+      over: {
+        title: 'Koşu bitti',
+        newbest: 'Yeni rekor!',
+        best: 'Rekor',
+        fish: 'Balık',
+        coins: 'Para',
+        continue: 'Devam et',
+        again: 'Bir daha',
+        double: 'Parayı ikiye katla',
+        doubled: 'Para ikiye katlandı',
+        menu: 'Menü'
+      },
+      common: { ad: 'reklam', ok: 'Anladım', close: 'Kapat', cancel: 'İptal', loading: 'Yükleniyor…' },
+      install: {
+        title: 'Uygulamayı yükle',
+        button: 'Yükle',
+        hint: 'Oyun ayrı bir pencerede açılır ve internetsiz çalışır.',
+        note: 'Simge masaüstünde veya ana ekranda normal bir uygulama gibi görünür.',
+        ios: 'Safari\'de «Paylaş» öğesine dokun ve «Ana Ekrana Ekle» seç.',
+        android: 'Tarayıcı menüsünden «Uygulamayı yükle» veya «Ana ekrana ekle» seç.',
+        desktop: 'Tarayıcı adres çubuğundaki yükleme simgesine tıkla.',
+        done: 'Hazır — oyun yüklendi'
+      },
+      power: { shield: 'KALKAN', magnet: 'MIKNATIS', slow: 'YAVAŞ' },
+      event: { third: 'ÜÇÜNCÜ YÖRÜNGE!' },
+      pause: {
+        title: 'Duraklatıldı',
+        resume: 'Devam',
+        restart: 'Yeniden',
+        sound: 'Ses',
+        music: 'Müzik'
+      },
+      shop: {
+        title: 'Mağaza',
+        skins: 'Görünümler',
+        coins: 'Para',
+        buy: 'Satın al',
+        equip: 'Seç',
+        equipped: 'Seçili',
+        owned: 'Alındı',
+        needCoins: 'Yeterli para yok',
+        iapTitle: 'Para paketleri',
+        iapSoon: 'Satın almalar oyun yayınlandıktan sonra açılır.',
+        noAds: 'Reklamları kaldır',
+        noAdsDesc: 'Zorunlu reklam yok. Ödüllü reklamlar kalır.',
+        ownedNoAds: 'Zaten alındı'
+      },
+      daily: {
+        title: 'Bonuslar',
+        streakTitle: 'Günlük bonus',
+        claim: 'Al',
+        claimed: 'Alındı',
+        freeCoins: 'Bedava para',
+        freeLeft: 'Bedava para ({n}/{max})',
+        wait: '{s} sn sonra',
+        day: 'Gün {n}',
+        streak: 'Seri: {n} gün'
+      },
+      missions: {
+        title: 'Günlük görevler',
+        claim: 'Al',
+        done: 'Bitti',
+        m1: '5 koşu oyna',
+        m2: '40 balık topla',
+        m3: '2500 puan yap'
+      },
+      leaders: {
+        title: 'Liderler',
+        loading: 'Yükleniyor…',
+        empty: 'Henüz boş. İlk sen ol!',
+        error: 'Sıralama Yandex Oyunlarda mevcut',
+        anon: 'Oyuncu'
+      },
+      settings: {
+        title: 'Ayarlar',
+        sound: 'Sesler',
+        music: 'Müzik',
+        controls: 'Kontrol',
+        controlsText: 'Dokun veya boşluk — yörünge değiştir. Balık topla, asteroitlerden kaç. Üç balık üst üste — çarpan.',
+        reset: 'İlerlemeyi sıfırla',
+        resetHint: 'Para, görünüm ve rekoru siler.',
+        resetAsk: 'Tüm ilerleme sıfırlansın mı?'
+      },
+      howto: {
+        1: 'Başka yörüngeye geçmek için dokun.',
+        2: 'Balık topla — puan ve para verir.',
+        3: 'Asteroitlere dokunma. Kalkan bir kez kurtarır.',
+        4: '1000 puanda üçüncü yörünge açılır.'
+      },
+      toast: {
+        coins: '+{n} para',
+        adUnavailable: 'Reklam yok, sonra dene',
+        adError: 'Reklam gösterilemedi',
+        rewardFail: 'Ödül alınamadı',
+        noAds: 'Reklamlar kapatıldı. Teşekkürler!',
+        buyFail: 'Satın alma tamamlanmadı',
+        resetDone: 'İlerleme sıfırlandı',
+        needCoins: 'Yeterli para yok',
+        bought: 'Alındı: {name}',
+        welcome: 'Hoş geldin!',
+        saved: 'Kaydedildi'
+      },
+      skins: {
+        classic: 'Bıyık', neon: 'Neon', ninja: 'Ninja', robot: 'Robot',
+        unicorn: 'Tekboynuz', void: 'Boşluk', gold: 'Altın', lava: 'Lav',
+        ice: 'Buz', cyber: 'Siber', rainbow: 'Gökkuşağı', angel: 'Melek'
+      }
+    }
+  };
+
+  var current = 'ru';
+
+  function dig(obj, path) {
+    var parts = path.split('.');
+    var cur = obj;
+    for (var i = 0; i < parts.length; i++) {
+      if (cur == null) return null;
+      cur = cur[parts[i]];
+    }
+    return cur;
+  }
+
+  var I18n = {
+    dict: I18N,
+    get lang() { return current; },
+    set: function (lang) {
+      current = I18N[lang] ? lang : 'ru';
+      document.documentElement.lang = current;
+      try { document.title = I18n.t('app.title'); } catch (e) {}
+    },
+    t: function (key, vars) {
+      var s = dig(I18N[current], key);
+      if (typeof s !== 'string') s = dig(I18N.ru, key);
+      if (typeof s !== 'string') s = key;
+      if (vars) {
+        for (var k in vars) {
+          if (Object.prototype.hasOwnProperty.call(vars, k)) {
+            s = s.split('{' + k + '}').join(vars[k]);
+          }
+        }
+      }
+      return s;
+    },
+    apply: function (root) {
+      root = root || document;
+      var nodes = root.querySelectorAll('[data-i18n]');
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].textContent = I18n.t(nodes[i].getAttribute('data-i18n'));
+      }
+      var logos = root.querySelectorAll ? root.querySelectorAll('.logo') : [];
+      for (var j = 0; j < logos.length; j++) {
+        logos[j].innerHTML = I18n.t('menu.logo1') + '<span>·</span>' + I18n.t('menu.logo2');
+      }
+    }
+  };
+
+  I18N.ru['app'] = { title: 'Мяу-Орбита' };
+  I18N.en['app'] = { title: 'Meow Orbit' };
+  I18N.tr['app'] = { title: 'Miyav Orbit' };
+
+  window.I18n = I18n;
+  window.t = I18n.t;
+})();
+
+</script>
+<script>
+/* Yandex Games SDK wrapper: реклама, сохранения, лидерборд, покупки.
+   Всё опционально — без SDK игра работает в локальном режиме. */
+(function (global) {
+  'use strict';
+
+  var SDK = {
+    ysdk: null,
+    player: null,
+    lb: null,
+    pay: null,
+    inited: false,
+    isYandex: false,
+    lang: 'ru',
+    env: {},
+    device: 'desktop',
+    _reviewAsked: false,
+    _gameplayActive: false,
+
+    init: function () {
+      var self = this;
+      return new Promise(function (resolve) {
+        var done = false;
+        var finish = function () {
+          if (done) return;
+          done = true;
+          self.inited = true;
+          resolve(self);
+        };
+
+        // страховка на случай проблем с сетью
+        var timer = setTimeout(finish, 8000);
+
+        function boot() {
+          if (typeof global.YaGames === 'undefined') {
+            clearTimeout(timer);
+            finish();
+            return;
+          }
+          global.YaGames.init({ orientation: { value: 'portrait', lock: false } })
+            .then(function (ysdk) {
+              self.ysdk = ysdk;
+              self.isYandex = true;
+              try {
+                self.env = ysdk.environment || {};
+                self.device = (ysdk.deviceInfo && ysdk.deviceInfo.type) || 'desktop';
+                if (self.env.i18n && self.env.i18n.lang) self.lang = self.env.i18n.lang;
+              } catch (e) {}
+
+              var jobs = [];
+              jobs.push(
+                ysdk.getPlayer({ scopes: false })
+                  .then(function (p) { self.player = p; })
+                  .catch(function () {
+                    // старый/новый вариант вызова — пробуем без параметров
+                    return ysdk.getPlayer()
+                      .then(function (p) { self.player = p; })
+                      .catch(function () {});
+                  })
+              );
+              jobs.push(
+                ysdk.getLeaderboards()
+                  .then(function (lb) { self.lb = lb; })
+                  .catch(function () {})
+              );
+              if (ysdk.getPayments) {
+                jobs.push(
+                  ysdk.getPayments({ signed: false })
+                    .then(function (p) { self.pay = p; })
+                    .catch(function () {})
+                );
+              }
+
+              // пауза от платформы
+              try {
+                if (ysdk.on) {
+                  ysdk.on('game_api_pause', function () {
+                    if (self.onPlatformPause) self.onPlatformPause();
+                  });
+                }
+              } catch (e) {}
+
+              Promise.all(jobs).then(function () {
+                clearTimeout(timer);
+                finish();
+              });
+            })
+            .catch(function () {
+              clearTimeout(timer);
+              finish();
+            });
+        }
+        var skip = /[?&]nosdk=1/.test(global.location.search);
+        if (skip || typeof global.YaGames !== 'undefined') { boot(); return; }
+        var sc = document.createElement('script');
+        sc.src = 'https://yandex.ru/games/sdk/v2';
+        sc.onload = function () { boot(); };
+        sc.onerror = function () { clearTimeout(timer); finish(); };
+        document.head.appendChild(sc);
+      });
+    },
+
+    loadingReady: function () {
+      try {
+        if (this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) {
+          this.ysdk.features.LoadingAPI.ready();
+        }
+      } catch (e) {}
+    },
+
+    gameplayStart: function () {
+      if (this._gameplayActive) return;
+      this._gameplayActive = true;
+      try {
+        if (this.ysdk && this.ysdk.features && this.ysdk.features.GameplayAPI) {
+          this.ysdk.features.GameplayAPI.start();
+        }
+      } catch (e) {}
+    },
+
+    gameplayStop: function () {
+      if (!this._gameplayActive) return;
+      this._gameplayActive = false;
+      try {
+        if (this.ysdk && this.ysdk.features && this.ysdk.features.GameplayAPI) {
+          this.ysdk.features.GameplayAPI.stop();
+        }
+      } catch (e) {}
+    },
+
+    /* ---------- облачные сохранения ---------- */
+    loadData: function () {
+      var self = this;
+      if (!this.player || !this.player.getData) return Promise.resolve(null);
+      return this.player.getData(['save'])
+        .then(function (data) { return (data && data.save) || null; })
+        .catch(function () { return null; });
+    },
+
+    saveData: function (obj, flush) {
+      if (!this.player || !this.player.setData) return Promise.resolve(false);
+      return this.player.setData({ save: obj }, !!flush)
+        .then(function () { return true; })
+        .catch(function () { return false; });
+    },
+
+    /* ---------- лидерборд ---------- */
+    setScore: function (score) {
+      if (!this.lb || !score) return Promise.resolve(false);
+      return this.lb.setLeaderboardScore('score', Math.round(score))
+        .then(function () { return true; })
+        .catch(function () { return false; });
+    },
+
+    getLeaders: function () {
+      if (!this.lb) return Promise.reject(new Error('no leaderboard'));
+      return this.lb.getLeaderboardEntries('score', {
+        quantityTop: 10,
+        includeUser: true,
+        quantityAround: 3
+      });
+    },
+
+    /* ---------- покупки ---------- */
+    getCatalog: function () {
+      if (!this.pay) return Promise.resolve([]);
+      return this.pay.getCatalog().catch(function () { return []; });
+    },
+
+    purchase: function (id) {
+      if (!this.pay) return Promise.reject(new Error('no payments'));
+      return this.pay.purchase({ id: id });
+    },
+
+    getPurchases: function () {
+      if (!this.pay) return Promise.resolve([]);
+      return this.pay.getPurchases().catch(function () { return []; });
+    },
+
+    consume: function (token) {
+      if (!this.pay) return Promise.resolve(false);
+      return this.pay.consumePurchase(token)
+        .then(function () { return true; })
+        .catch(function () { return false; });
+    },
+
+    /* ---------- отзыв ---------- */
+    requestReview: function (force) {
+      var self = this;
+      if (this._reviewAsked && !force) return;
+      try {
+        if (!this.ysdk || !this.ysdk.feedback) return;
+        this.ysdk.feedback.canReview().then(function (res) {
+          if (res && res.value) {
+            self._reviewAsked = true;
+            return self.ysdk.feedback.requestReview();
+          }
+        }).catch(function () {});
+      } catch (e) {}
+    }
+  };
+
+  /* ---------- Реклама ---------- */
+  var Ads = {
+    busy: false,
+    lastFull: 0,
+    runsSinceFull: 0,
+    mock: false,
+    noAds: false,
+    onBefore: null,
+    onAfter: null,
+
+    init: function () {
+      this.mock = /[?&]mockads=1/.test(global.location.search);
+    },
+
+    available: function () {
+      return !!(SDK.ysdk && SDK.ysdk.adv) || this.mock;
+    },
+
+    canShowFullscreen: function () {
+      if (!this.available() || this.busy) return false;
+      if (this.noAds) return false;
+      if (this.runsSinceFull < 2) return false;
+      if (Date.now() - this.lastFull < 60000) return false;
+      return true;
+    },
+
+    noteRun: function () {
+      this.runsSinceFull++;
+    },
+
+    _pause: function () {
+      if (this.onBefore) { try { this.onBefore(); } catch (e) {} }
+    },
+    _resume: function () {
+      if (this.onAfter) { try { this.onAfter(); } catch (e) {} }
+    },
+
+    showFullscreen: function (cb) {
+      var self = this;
+      if (!this.canShowFullscreen()) {
+        if (cb) cb(false);
+        return;
+      }
+      this.busy = true;
+      this._pause();
+      var settled = false;
+      var finish = function (shown) {
+        if (settled) return;
+        settled = true;
+        self.busy = false;
+        self.lastFull = Date.now();
+        self.runsSinceFull = 0;
+        self._resume();
+        if (cb) cb(shown);
+      };
+
+      if (!SDK.ysdk || !SDK.ysdk.adv) {
+        // локальный режим
+        setTimeout(function () { finish(false); }, 350);
+        return;
+      }
+
+      try {
+        SDK.ysdk.adv.showFullscreenAdv({
+          callbacks: {
+            onOpen: function () {},
+            onClose: function (wasShown) { finish(!!wasShown); },
+            onError: function () { finish(false); }
+          }
+        });
+        setTimeout(function () { finish(true); }, 22000);
+      } catch (e) {
+        finish(false);
+      }
+    },
+
+    /* onReward — награда, onFail(reason), onDone — всегда после закрытия */
+    showRewarded: function (onReward, onFail, onDone) {
+      var self = this;
+      if (this.busy) { if (onFail) onFail('busy'); return; }
+      if (!this.available()) { if (onFail) onFail('unavailable'); if (onDone) onDone(); return; }
+
+      this.busy = true;
+      this._pause();
+      var gotReward = false;
+      var settled = false;
+
+      var finish = function (ok, reason) {
+        if (settled) return;
+        settled = true;
+        self.busy = false;
+        self._resume();
+        if (ok) { if (onReward) onReward(); }
+        else if (onFail) onFail(reason || 'closed');
+        if (onDone) onDone();
+      };
+
+      if (!SDK.ysdk || !SDK.ysdk.adv) {
+        setTimeout(function () { finish(true); }, 700);
+        return;
+      }
+
+      try {
+        SDK.ysdk.adv.showRewardedVideo({
+          callbacks: {
+            onOpen: function () {},
+            onRewarded: function () { gotReward = true; },
+            onClose: function () { finish(gotReward, gotReward ? null : 'closed'); },
+            onError: function () { finish(false, 'error'); }
+          }
+        });
+        // страховка, если платформа не вернула колбэк
+        setTimeout(function () {
+          if (!settled) finish(gotReward, gotReward ? null : 'timeout');
+        }, 90000);
+      } catch (e) {
+        finish(false, 'error');
+      }
+    }
+  };
+
+  Ads.init();
+
+  global.SDK = SDK;
+  global.Ads = Ads;
+})(window);
+
+</script>
+<script>
+/* Процедурный звук: SFX + лёгкая музыка на WebAudio (без внешних файлов) */
+(function (global) {
+  'use strict';
+
+  var Sound = {
+    ctx: null,
+    master: null,
+    sfxGain: null,
+    musicGain: null,
+    enabled: true,
+    musicOn: true,
+    _noise: null,
+    _musicTimer: null,
+    _nextNote: 0,
+    _step: 0,
+    _started: false,
+
+    init: function () {
+      if (this.ctx) return;
+      var AC = global.AudioContext || global.webkitAudioContext;
+      if (!AC) { this.enabled = false; return; }
+      try {
+        this.ctx = new AC();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.85;
+        this.master.connect(this.ctx.destination);
+
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.value = 0.55;
+        this.sfxGain.connect(this.master);
+
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.gain.value = 0.0;
+        this.musicGain.connect(this.master);
+
+        var len = Math.floor(this.ctx.sampleRate * 0.6);
+        var buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+        this._noise = buf;
+      } catch (e) {
+        this.ctx = null;
+      }
+    },
+
+    unlock: function () {
+      this.init();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(function () {});
+      }
+      if (!this._started) {
+        this._started = true;
+        if (this.musicOn) this.startMusic();
+      }
+    },
+
+    setEnabled: function (on) {
+      this.enabled = !!on;
+      if (this.sfxGain) this.sfxGain.gain.value = on ? 0.55 : 0;
+    },
+
+    setMusic: function (on) {
+      this.musicOn = !!on;
+      if (!on) this.stopMusic();
+      else if (this.ctx) this.startMusic();
+    },
+
+    suspend: function () {
+      if (!this.ctx) return;
+      try { this.ctx.suspend(); } catch (e) {}
+    },
+
+    resume: function () {
+      if (!this.ctx) return;
+      try { this.ctx.resume(); } catch (e) {}
+    },
+
+    /* ---------- музыка ---------- */
+    startMusic: function () {
+      if (!this.ctx || this._musicTimer) return;
+      var self = this;
+      this.musicGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.musicGain.gain.setTargetAtTime(0.30, this.ctx.currentTime, 0.6);
+      this._nextNote = this.ctx.currentTime + 0.15;
+      this._step = 0;
+      this._musicTimer = setInterval(function () { self._schedule(); }, 120);
+      this._schedule();
+    },
+
+    stopMusic: function () {
+      if (this._musicTimer) { clearInterval(this._musicTimer); this._musicTimer = null; }
+      if (this.musicGain && this.ctx) {
+        this.musicGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
+      }
+    },
+
+    _schedule: function () {
+      if (!this.ctx || !this.musicOn) return;
+      var now = this.ctx.currentTime;
+      var stepDur = 60 / 96 / 2; // восьмые при 96 BPM
+      var guard = 0;
+      while (this._nextNote < now + 0.35 && guard++ < 32) {
+        this._playStep(this._step, this._nextNote);
+        this._nextNote += stepDur;
+        this._step++;
+      }
+    },
+
+    _playStep: function (step, at) {
+      var chords = [
+        [57, 60, 64, 69],  // Am
+        [53, 57, 60, 65],  // F
+        [48, 52, 55, 60],  // C
+        [55, 59, 62, 67]   // G
+      ];
+      var bar = Math.floor(step / 8) % 4;
+      var chord = chords[bar];
+      var pos = step % 8;
+      var mtof = function (m) { return 440 * Math.pow(2, (m - 69) / 12); };
+      var beat = pos === 0;
+
+      // арпеджио
+      var arpIdx = [0, 2, 1, 3, 2, 1, 3, 2][pos];
+      var arpNote = chord[arpIdx] + (pos === 3 || pos === 6 ? 12 : 0);
+      this._pluck(mtof(arpNote), at, 0.09, 0.34, 'triangle');
+
+      // бас
+      if (pos === 0 || pos === 4) {
+        this._pluck(mtof(chord[0] - 24), at, 0.36, 0.20, 'sine');
+      }
+      // пэд в начале такта
+      if (beat) {
+        for (var i = 0; i < 3; i++) {
+          this._pad(mtof(chord[i] + 12), at, 3.1, 0.045);
+        }
+      }
+      // лёгкий хай-хэт
+      if (pos % 2 === 1) this._hat(at, 0.03);
+    },
+
+    _pluck: function (freq, at, dur, gain, type) {
+      if (!this.ctx) return;
+      var o = this.ctx.createOscillator();
+      var g = this.ctx.createGain();
+      var f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 2200;
+      o.type = type || 'triangle';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(gain, at + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      o.connect(f); f.connect(g); g.connect(this.musicGain);
+      o.start(at); o.stop(at + dur + 0.02);
+    },
+
+    _pad: function (freq, at, dur, gain) {
+      if (!this.ctx) return;
+      var o = this.ctx.createOscillator();
+      var o2 = this.ctx.createOscillator();
+      var g = this.ctx.createGain();
+      var f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(500, at);
+      f.frequency.linearRampToValueAtTime(1400, at + 1.2);
+      o.type = 'sawtooth'; o2.type = 'sawtooth';
+      o.frequency.value = freq; o2.frequency.value = freq * 1.005;
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(gain, at + 0.9);
+      g.gain.linearRampToValueAtTime(0.0001, at + dur);
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(this.musicGain);
+      o.start(at); o2.start(at); o.stop(at + dur); o2.stop(at + dur);
+    },
+
+    _hat: function (at, gain) {
+      if (!this.ctx || !this._noise) return;
+      var s = this.ctx.createBufferSource();
+      s.buffer = this._noise;
+      var f = this.ctx.createBiquadFilter();
+      f.type = 'highpass'; f.frequency.value = 7000;
+      var g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain, at);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+      s.connect(f); f.connect(g); g.connect(this.musicGain);
+      s.start(at); s.stop(at + 0.06);
+    },
+
+    /* ---------- SFX ---------- */
+    _tone: function (opt) {
+      if (!this.ctx || !this.enabled) return;
+      var t = this.ctx.currentTime + (opt.delay || 0);
+      var o = this.ctx.createOscillator();
+      var g = this.ctx.createGain();
+      var f = this.ctx.createBiquadFilter();
+      f.type = opt.filter || 'lowpass';
+      f.frequency.value = opt.filterFreq || 4000;
+      o.type = opt.type || 'sine';
+      o.frequency.setValueAtTime(opt.freq, t);
+      if (opt.freq2) o.frequency.exponentialRampToValueAtTime(Math.max(20, opt.freq2), t + opt.dur);
+      var vol = (opt.gain == null ? 0.25 : opt.gain);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + (opt.attack || 0.005));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + opt.dur);
+      o.connect(f); f.connect(g); g.connect(this.sfxGain);
+      o.start(t); o.stop(t + opt.dur + 0.02);
+    },
+
+    _burst: function (dur, gain, freq, type) {
+      if (!this.ctx || !this.enabled || !this._noise) return;
+      var t = this.ctx.currentTime;
+      var s = this.ctx.createBufferSource();
+      s.buffer = this._noise;
+      var f = this.ctx.createBiquadFilter();
+      f.type = type || 'lowpass';
+      f.frequency.setValueAtTime(freq || 1400, t);
+      f.frequency.exponentialRampToValueAtTime(160, t + dur);
+      var g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(this.sfxGain);
+      s.start(t); s.stop(t + dur + 0.02);
+    },
+
+    pickup: function (combo) {
+      if (!this.enabled) return;
+      var ladder = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+      var semi = ladder[Math.min(ladder.length - 1, combo % ladder.length)];
+      var base = 523.25 * Math.pow(2, semi / 12);
+      this._tone({ type: 'triangle', freq: base, dur: 0.16, gain: 0.17, filterFreq: 6000 });
+      this._tone({ type: 'sine', freq: base * 2, dur: 0.1, gain: 0.06, delay: 0.01 });
+    },
+
+    switchLane: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'sine', freq: 420, freq2: 900, dur: 0.13, gain: 0.11, filterFreq: 3000 });
+      this._burst(0.1, 0.05, 2600, 'highpass');
+    },
+
+    coin: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'square', freq: 988, dur: 0.07, gain: 0.07 });
+      this._tone({ type: 'square', freq: 1319, dur: 0.12, gain: 0.06, delay: 0.06 });
+    },
+
+    power: function () {
+      if (!this.enabled) return;
+      var self = this;
+      [523, 659, 784, 1047].forEach(function (f, i) {
+        self._tone({ type: 'triangle', freq: f, dur: 0.14, gain: 0.13, delay: i * 0.055 });
+      });
+    },
+
+    shield: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'square', freq: 1200, freq2: 300, dur: 0.28, gain: 0.12 });
+      this._burst(0.22, 0.09, 3200, 'bandpass');
+    },
+
+    hit: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'sawtooth', freq: 180, freq2: 42, dur: 0.5, gain: 0.3, filterFreq: 1200 });
+      this._burst(0.42, 0.22, 1800);
+    },
+
+    ui: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'sine', freq: 660, dur: 0.06, gain: 0.09, filterFreq: 2600 });
+    },
+
+    best: function () {
+      if (!this.enabled) return;
+      var self = this;
+      [659, 784, 988, 1319].forEach(function (f, i) {
+        self._tone({ type: 'triangle', freq: f, dur: 0.24, gain: 0.12, delay: i * 0.09 });
+      });
+    },
+
+    fail: function () {
+      if (!this.enabled) return;
+      this._tone({ type: 'sine', freq: 420, freq2: 200, dur: 0.3, gain: 0.14 });
+    }
+  };
+
+  global.Sound = Sound;
+})(window);
+
+</script>
+<script>
+/* Сохранения: localStorage + облако Яндекс Игр */
+(function (global) {
+  'use strict';
+
+  var KEY = 'meow_orbit_v1';
+  var DAY = 86400000;
+  var DAILY_REWARDS = [50, 80, 120, 170, 230, 300, 400];
+  var FREE_COINS_MAX = 3;
+  var FREE_COINS_COOLDOWN = 180000;
+  var FREE_COINS_AMOUNT = 80;
+
+  var MISSIONS = [
+    { id: 'm1', key: 'missions.m1', target: 5, reward: 60, field: 'runs' },
+    { id: 'm2', key: 'missions.m2', target: 40, reward: 120, field: 'fish' },
+    { id: 'm3', key: 'missions.m3', target: 2500, reward: 200, field: 'score' }
+  ];
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+  function defaults() {
+    return {
+      v: 1,
+      ts: Date.now(),
+      best: 0,
+      coins: 0,
+      runs: 0,
+      totalFish: 0,
+      skins: ['classic'],
+      skin: 'classic',
+      sound: true,
+      music: true,
+      noAds: false,
+      tut: false,
+      daily: { last: '', streak: 0 },
+      missions: { date: '', runs: 0, fish: 0, score: 0, claimed: [false, false, false] },
+      rewarded: { day: '', count: 0, nextAt: 0 },
+      ads: { lastAt: 0, sinceAd: 0 }
+    };
+  }
+
+  function dayKey(d) {
+    d = d || new Date();
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+  }
+
+  function parseDay(s) {
+    if (!s) return 0;
+    var p = s.split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]).getTime();
+  }
+
+  var Save = {
+    data: null,
+    DAILY_REWARDS: DAILY_REWARDS,
+    MISSIONS: MISSIONS,
+    FREE_COINS_MAX: FREE_COINS_MAX,
+    FREE_COINS_AMOUNT: FREE_COINS_AMOUNT,
+
+    init: function () {
+      var loaded = null;
+      try {
+        var raw = global.localStorage.getItem(KEY);
+        if (raw) loaded = JSON.parse(raw);
+      } catch (e) {}
+      var def = defaults();
+      if (loaded && typeof loaded === 'object') {
+        for (var k in def) {
+          if (Object.prototype.hasOwnProperty.call(def, k) && loaded[k] !== undefined) def[k] = loaded[k];
+        }
+        // добиваем вложенные поля
+        var dd = defaults();
+        ['daily', 'missions', 'rewarded', 'ads'].forEach(function (g) {
+          if (!def[g] || typeof def[g] !== 'object') def[g] = dd[g];
+          for (var kk in dd[g]) if (def[g][kk] === undefined) def[g][kk] = dd[g][kk];
+        });
+        if (!Array.isArray(def.skins) || !def.skins.length) def.skins = ['classic'];
+      }
+      this.data = def;
+      this.checkDay();
+      return this;
+    },
+
+    syncCloud: function () {
+      var self = this;
+      return global.SDK.loadData().then(function (cloud) {
+        if (!cloud || typeof cloud !== 'object') {
+          self.save();
+          return false;
+        }
+        if (cloud.ts && cloud.ts > (self.data.ts || 0)) {
+          var def = defaults();
+          for (var k in def) if (cloud[k] !== undefined) def[k] = cloud[k];
+          self.data = def;
+          self.checkDay();
+          self.persistLocal();
+          return true;
+        }
+        self.save();
+        return false;
+      }).catch(function () { return false; });
+    },
+
+    persistLocal: function () {
+      try { global.localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) {}
+    },
+
+    save: function () {
+      var self = this;
+      this.data.ts = Date.now();
+      this.persistLocal();
+      if (this._saveTimer) clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(function () {
+        self._saveTimer = null;
+        global.SDK.saveData(clone(self.data), false);
+      }, 3000);
+    },
+
+    saveNow: function () {
+      if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; }
+      this.data.ts = Date.now();
+      this.persistLocal();
+      global.SDK.saveData(clone(this.data), true);
+    },
+
+    reset: function () {
+      this.data = defaults();
+      this.data.ts = Date.now() + 1;
+      this.persistLocal();
+      global.SDK.saveData(clone(this.data), true);
+    },
+
+    /* ---------- валютa ---------- */
+    addCoins: function (n) {
+      this.data.coins = Math.max(0, Math.round((this.data.coins || 0) + n));
+      this.save();
+      return this.data.coins;
+    },
+
+    spend: function (n) {
+      if ((this.data.coins || 0) < n) return false;
+      this.data.coins -= n;
+      this.save();
+      return true;
+    },
+
+    addBest: function (score) {
+      var isNew = score > (this.data.best || 0);
+      if (isNew) this.data.best = Math.round(score);
+      this.checkDay();
+      if (score > this.data.missions.score) this.data.missions.score = Math.round(score);
+      this.save();
+      return isNew;
+    },
+
+    countRun: function () {
+      this.checkDay();
+      this.data.runs = (this.data.runs || 0) + 1;
+      this.data.missions.runs += 1;
+      this.save();
+    },
+
+    addFish: function (n) {
+      this.data.totalFish = (this.data.totalFish || 0) + n;
+      this.checkDay();
+      this.data.missions.fish += n;
+      this.save();
+    },
+
+    /* ---------- ежедневки ---------- */
+    checkDay: function () {
+      var today = dayKey();
+      if (this.data.missions.date !== today) {
+        this.data.missions.date = today;
+        this.data.missions.runs = 0;
+        this.data.missions.fish = 0;
+        this.data.missions.score = 0;
+        this.data.missions.claimed = [false, false, false];
+      }
+      if (this.data.rewarded.day !== today) {
+        this.data.rewarded.day = today;
+        this.data.rewarded.count = 0;
+        this.data.rewarded.nextAt = 0;
+      }
+    },
+
+    dailyState: function () {
+      var today = dayKey();
+      var last = this.data.daily.last;
+      var canClaim = last !== today;
+      var streak = this.data.daily.streak || 0;
+      var dayIndex = streak % 7;
+      if (canClaim && last && parseDay(last) < parseDay(today) - DAY * 0.5) {
+        // пропустил день — серия обнулится при получении
+      }
+      var displayDay = canClaim ? Math.min(7, (streak % 7) + 1) : Math.min(7, streak === 0 ? 1 : ((streak - 1) % 7) + 1);
+      return {
+        canClaim: canClaim,
+        streak: streak,
+        dayIndex: dayIndex,
+        displayDay: displayDay,
+        rewards: DAILY_REWARDS
+      };
+    },
+
+    claimDaily: function () {
+      var st = this.dailyState();
+      if (!st.canClaim) return 0;
+      var today = dayKey();
+      var yesterday = dayKey(new Date(Date.now() - DAY));
+      var streak = (this.data.daily.last === yesterday) ? (this.data.daily.streak || 0) + 1 : 1;
+      if (streak > 7) streak = 7;
+      this.data.daily.last = today;
+      this.data.daily.streak = streak;
+      var amount = DAILY_REWARDS[Math.min(6, streak - 1)];
+      this.addCoins(amount);
+      return amount;
+    },
+
+    missionsState: function () {
+      var self = this;
+      this.checkDay();
+      return MISSIONS.map(function (m, i) {
+        var val = self.data.missions[m.field] || 0;
+        var claimed = !!self.data.missions.claimed[i];
+        var done = val >= m.target;
+        return {
+          id: m.id, key: m.key, target: m.target, reward: m.reward,
+          value: Math.min(val, m.target), done: done, claimed: claimed
+        };
+      });
+    },
+
+    claimMission: function (index) {
+      var list = this.missionsState();
+      var m = list[index];
+      if (!m || !m.done || m.claimed) return 0;
+      this.data.missions.claimed[index] = true;
+      this.addCoins(m.reward);
+      return m.reward;
+    },
+
+    /* ---------- рекламные монеты ---------- */
+    freeCoinsState: function () {
+      this.checkDay();
+      var r = this.data.rewarded;
+      var left = Math.max(0, FREE_COINS_MAX - (r.count || 0));
+      var wait = Math.max(0, (r.nextAt || 0) - Date.now());
+      return { left: left, wait: wait, amount: FREE_COINS_AMOUNT, max: FREE_COINS_MAX };
+    },
+
+    useFreeCoins: function () {
+      var st = this.freeCoinsState();
+      if (st.left <= 0 || st.wait > 0) return 0;
+      this.data.rewarded.count = (this.data.rewarded.count || 0) + 1;
+      this.data.rewarded.nextAt = Date.now() + FREE_COINS_COOLDOWN;
+      this.addCoins(FREE_COINS_AMOUNT);
+      return FREE_COINS_AMOUNT;
+    },
+
+    /* ---------- реклама: политика ---------- */
+    noteAdRun: function () {
+      this.data.ads.sinceAd = (this.data.ads.sinceAd || 0) + 1;
+      this.save();
+    },
+
+    registerAdShown: function () {
+      this.data.ads.lastAt = Date.now();
+      this.data.ads.sinceAd = 0;
+      this.save();
+    },
+
+    /* ---------- скины ---------- */
+    ownsSkin: function (id) { return this.data.skins.indexOf(id) >= 0; },
+
+    buySkin: function (skin) {
+      if (this.ownsSkin(skin.id)) return 'owned';
+      if (!this.spend(skin.price)) return 'nocoins';
+      this.data.skins.push(skin.id);
+      this.data.skin = skin.id;
+      this.save();
+      return 'ok';
+    },
+
+    equipSkin: function (id) {
+      if (!this.ownsSkin(id)) return false;
+      this.data.skin = id;
+      this.save();
+      return true;
+    }
+  };
+
+  global.Save = Save;
+  global.dayKey = dayKey;
+
+  // при уходе со страницы стараемся дописать прогресс в облако
+  if (global.addEventListener) {
+    global.addEventListener('pagehide', function () {
+      try {
+        if (!Save.data) return;
+        Save.data.ts = Date.now();
+        Save.persistLocal();
+        if (global.SDK && global.SDK.saveData) global.SDK.saveData(clone(Save.data), true);
+      } catch (e) {}
+    });
+  }
+})(window);
+
+</script>
+<script>
+/* МЯУ-ОРБИТА — ядро игры (Canvas2D, без зависимостей) */
+(function (global) {
+  'use strict';
+
+  var TAU = Math.PI * 2;
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
+  function angDiff(a, b) {
+    var d = (a - b) % TAU;
+    if (d > Math.PI) d -= TAU;
+    if (d < -Math.PI) d += TAU;
+    return d;
+  }
+
+  function rgba(hex, a) {
+    if (!hex || hex.charAt(0) !== '#') return 'rgba(160,120,255,' + a + ')';
+    var r = parseInt(hex.substr(1, 2), 16), g = parseInt(hex.substr(3, 2), 16), b = parseInt(hex.substr(5, 2), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
+  var SKINS = [
+    { id: 'classic', price: 0, body: '#f8f5ff', shade: '#cfc6ee', ear: '#ffb3d1', eye: '#241c3f', accent: '#a98bff', trail: '#a98bff', acc: null },
+    { id: 'neon', price: 150, body: '#b6ff6a', shade: '#5dd94f', ear: '#e9ffb0', eye: '#0d2410', accent: '#8dff4d', trail: '#8dff4d', acc: null },
+    { id: 'ninja', price: 300, body: '#3a3f5c', shade: '#232739', ear: '#e0e5ff', eye: '#ffe066', accent: '#ff5b7a', trail: '#ff5b7a', acc: 'band' },
+    { id: 'robot', price: 450, body: '#bcd8ff', shade: '#6f93c9', ear: '#eaf4ff', eye: '#2b1a4a', accent: '#5cc8ff', trail: '#5cc8ff', acc: 'antenna' },
+    { id: 'unicorn', price: 600, body: '#ffe9f6', shade: '#ffb7dd', ear: '#ffd1e8', eye: '#5a2a4a', accent: '#ff8ecd', trail: '#ffb7dd', acc: 'horn' },
+    { id: 'void', price: 800, body: '#2a2148', shade: '#151029', ear: '#6b57c9', eye: '#b48bff', accent: '#8b5cff', trail: '#8b5cff', acc: null },
+    { id: 'gold', price: 1200, body: '#ffe28a', shade: '#e0a93c', ear: '#fff0c2', eye: '#3a2a00', accent: '#ffd166', trail: '#ffd166', acc: 'star' },
+    { id: 'lava', price: 1500, body: '#ff8a5c', shade: '#c93f2a', ear: '#ffc7a8', eye: '#2a0a00', accent: '#ff6b3d', trail: '#ff6b3d', acc: null },
+    { id: 'ice', price: 1800, body: '#bff0ff', shade: '#6fc9e8', ear: '#e8fbff', eye: '#123a4a', accent: '#66e0ff', trail: '#66e0ff', acc: null },
+    { id: 'cyber', price: 2200, body: '#ff7bd5', shade: '#a02f8b', ear: '#ffd1f2', eye: '#00ffe1', accent: '#ff2ea6', trail: '#ff2ea6', acc: 'band' },
+    { id: 'rainbow', price: 3000, body: '#ffffff', shade: '#cccccc', ear: '#ffffff', eye: '#332244', accent: '#ff5fa2', trail: '#ff5fa2', acc: 'rainbow' },
+    { id: 'angel', price: 4000, body: '#fff7e8', shade: '#ffd9a8', ear: '#fff1d8', eye: '#4a3a1a', accent: '#ffe6a8', trail: '#ffe6a8', acc: 'halo' }
+  ];
+
+  /* ---------- рисование кота (используется и в магазине) ---------- */
+  function drawCat(ctx, x, y, r, skin, time, alpha, blink, pop) {
+    var t = time || 0;
+    var body = skin.body, shade = skin.shade, trail = skin.trail;
+    if (skin.id === 'rainbow') {
+      var h = (t * 55) % 360;
+      body = 'hsl(' + h + ' 92% 76%)';
+      shade = 'hsl(' + ((h + 40) % 360) + ' 82% 60%)';
+      trail = 'hsl(' + h + ' 92% 66%)';
+    }
+    alpha = alpha == null ? 1 : alpha;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = alpha;
+
+    var wag = Math.sin(t * 7) * r * 0.3;
+
+    // хвост
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.5, r * 0.5);
+    ctx.quadraticCurveTo(-r * 1.5, r * 0.55 + wag, -r * 1.25, -r * 0.3 + wag * 0.6);
+    ctx.strokeStyle = body;
+    ctx.lineWidth = r * 0.3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // тело
+    ctx.beginPath();
+    ctx.ellipse(0, r * 0.6, r * 0.72, r * 0.58, 0, 0, TAU);
+    ctx.fillStyle = body;
+    ctx.fill();
+
+    // уши
+    ctx.fillStyle = body;
+    ctx.strokeStyle = shade;
+    ctx.lineWidth = Math.max(1, r * 0.06);
+    for (var s = -1; s <= 1; s += 2) {
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.28, -r * 0.78);
+      ctx.lineTo(s * r * 0.86, -r * 1.12);
+      ctx.lineTo(s * r * 0.8, -r * 0.42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.42, -r * 0.72);
+      ctx.lineTo(s * r * 0.74, -r * 0.92);
+      ctx.lineTo(s * r * 0.7, -r * 0.56);
+      ctx.closePath();
+      ctx.fillStyle = skin.ear;
+      ctx.fill();
+      ctx.fillStyle = body;
+    }
+
+    // голова
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, TAU);
+    ctx.fillStyle = body;
+    ctx.fill();
+    ctx.strokeStyle = shade;
+    ctx.lineWidth = Math.max(1, r * 0.06);
+    ctx.stroke();
+
+    // блик
+    ctx.beginPath();
+    ctx.arc(-r * 0.34, -r * 0.36, r * 0.36, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.fill();
+
+    // глаза
+    var eyeY = -r * 0.04;
+    var er = blink ? r * 0.05 : r * 0.17;
+    ctx.fillStyle = skin.eye;
+    for (var e = -1; e <= 1; e += 2) {
+      ctx.beginPath();
+      ctx.ellipse(e * r * 0.33, eyeY, r * 0.13, er, 0, 0, TAU);
+      ctx.fill();
+    }
+    if (!blink) {
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      for (var g = -1; g <= 1; g += 2) {
+        ctx.beginPath();
+        ctx.arc(g * r * 0.33 + r * 0.05, eyeY - r * 0.07, r * 0.05, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    // нос
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.22);
+    ctx.lineTo(-r * 0.09, r * 0.13);
+    ctx.lineTo(r * 0.09, r * 0.13);
+    ctx.closePath();
+    ctx.fillStyle = skin.accent;
+    ctx.fill();
+
+    // усики
+    ctx.strokeStyle = skin.eye;
+    ctx.globalAlpha = alpha * 0.45;
+    ctx.lineWidth = Math.max(0.7, r * 0.045);
+    for (var w = 0; w < 2; w++) {
+      var oy = r * (0.12 + w * 0.14);
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.5, oy);
+      ctx.lineTo(-r * 1.05, oy - r * 0.08);
+      ctx.moveTo(-r * 0.5, oy + r * 0.04);
+      ctx.lineTo(-r * 1.02, oy + r * 0.12);
+      ctx.moveTo(r * 0.5, oy);
+      ctx.lineTo(r * 1.05, oy - r * 0.08);
+      ctx.moveTo(r * 0.5, oy + r * 0.04);
+      ctx.lineTo(r * 1.02, oy + r * 0.12);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = alpha;
+
+    // аксессуары
+    if (skin.acc === 'band') {
+      ctx.fillStyle = skin.accent;
+      ctx.beginPath();
+      ctx.rect(-r * 0.98, -r * 0.62, r * 1.96, r * 0.2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(r * 0.9, -r * 0.55);
+      ctx.lineTo(r * 1.5, -r * 0.75);
+      ctx.lineTo(r * 1.45, -r * 0.35);
+      ctx.closePath();
+      ctx.fill();
+    } else if (skin.acc === 'horn') {
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 1.62);
+      ctx.lineTo(-r * 0.2, -r * 0.82);
+      ctx.lineTo(r * 0.2, -r * 0.82);
+      ctx.closePath();
+      ctx.fillStyle = '#ffd166';
+      ctx.fill();
+      ctx.strokeStyle = '#e0a93c';
+      ctx.lineWidth = r * 0.05;
+      ctx.stroke();
+    } else if (skin.acc === 'antenna') {
+      ctx.strokeStyle = skin.shade;
+      ctx.lineWidth = r * 0.09;
+      ctx.beginPath();
+      ctx.moveTo(0, -r * 0.95);
+      ctx.lineTo(0, -r * 1.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -r * 1.55, r * 0.16, 0, TAU);
+      ctx.fillStyle = skin.accent;
+      ctx.fill();
+    } else if (skin.acc === 'halo') {
+      ctx.strokeStyle = '#ffe6a8';
+      ctx.lineWidth = r * 0.1;
+      ctx.beginPath();
+      ctx.ellipse(0, -r * 1.32, r * 0.58, r * 0.16, 0, 0, TAU);
+      ctx.stroke();
+    } else if (skin.acc === 'star') {
+      ctx.fillStyle = '#fff6c9';
+      for (var i = 0; i < 4; i++) {
+        var a = t * 1.6 + i * 1.57;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * 1.25, Math.sin(a) * r * 0.85 - r * 0.2, r * 0.07, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    if (pop && pop > 0) {
+      ctx.scale(1 + pop * 0.12, 1 + pop * 0.12);
+    }
+    ctx.restore();
+  }
+
+  var App = {
+    cv: null, ctx: null,
+    W: 0, H: 0, DPR: 1,
+    cx: 0, cy: 0, base: 0,
+    orbits: [0, 0, 0], planetR: 40, catR: 14,
+    mode: 'boot',
+    t: 0,
+    ui: {},
+    skin: SKINS[0],
+    SKINS: SKINS,
+
+    cat: { ang: -Math.PI / 2, r: 0, lane: 0, targetLane: 0, pop: 0, blink: 0 },
+    omega: 1.65, time: 0, timeScale: 1, slowT: 0, magnetT: 0,
+    hazards: [], fish: [], powers: [], parts: [], texts: [], rings: [], trail: [],
+    score: 0, combo: 0, comboT: 0, fishCount: 0,
+    shield: false, invuln: 0, shake: 0, flash: 0, hitstop: 0,
+    spawnH: 0, spawnF: 0, spawnP: 0,
+    maxLanes: 2, thirdOpen: false,
+    deathT: 0, reviveUsed: false, committed: 0,
+    tutorial: false, tutT: 0,
+    stars: [], bgCv: null, planetCv: null,
+    glowCache: {},
+    ambient: [],
+    result: null,
+    bestShown: 0,
+
+    /* ---------- init ---------- */
+    init: function () {
+      this.cv = document.getElementById('game');
+      this.ctx = this.cv.getContext('2d', { alpha: false });
+      this.god = /[?&]nohit=1/.test(location.search);
+      this.noGlow = /[?&]noglow=1/.test(location.search);
+      this.skin = this.skinById((global.Save && Save.data && Save.data.skin) || 'classic');
+      var self = this;
+      window.addEventListener('resize', function () { self.resize(); });
+      window.addEventListener('orientationchange', function () { setTimeout(function () { self.resize(); }, 120); });
+      this.resize();
+      this.bindInput();
+      this.loop = this.loop.bind(this);
+      requestAnimationFrame(this.loop);
+    },
+
+    bindInput: function () {
+      var self = this;
+      var blocked = function (el) {
+        if (!el || !el.closest) return false;
+        return !!(el.closest('button') || el.closest('a') || el.closest('.screen.show') || el.closest('.card') || el.closest('.toast'));
+      };
+      document.addEventListener('pointerdown', function (e) {
+        if (blocked(e.target)) return;
+        if (global.Sound) Sound.unlock();
+        if (self.mode === 'playing') {
+          e.preventDefault();
+          self.switchLane();
+        }
+      }, { passive: false });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.repeat) return;
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+          e.preventDefault();
+          if (global.Sound) Sound.unlock();
+          if (self.mode === 'playing') self.switchLane();
+        } else if (e.code === 'Escape' || e.code === 'KeyP') {
+          if (self.mode === 'playing' && self.ui.onAutoPause) self.ui.onAutoPause();
+        }
+      });
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden && self.mode === 'playing' && self.ui.onAutoPause) self.ui.onAutoPause();
+      });
+      window.addEventListener('blur', function () {
+        if (self.mode === 'playing' && self.ui.onAutoPause) self.ui.onAutoPause();
+      });
+    },
+
+    resize: function () {
+      this.W = window.innerWidth;
+      this.H = window.innerHeight;
+      this.DPR = clamp(window.devicePixelRatio || 1, 1, 2);
+      this.cv.width = Math.round(this.W * this.DPR);
+      this.cv.height = Math.round(this.H * this.DPR);
+      this.cv.style.width = this.W + 'px';
+      this.cv.style.height = this.H + 'px';
+      this.layout();
+      this.buildStars();
+      this.buildBg();
+      this.buildPlanet();
+    },
+
+    layout: function () {
+      this.cx = this.W / 2;
+      this.cy = this.H / 2;
+      // арена должна целиком влезать по ширине: крайняя орбита + габарит объекта
+      this.base = Math.min(this.W * 0.54, this.H * 0.42, (this.W / 2 - 30) / 0.98);
+      var b = this.base;
+      this.orbits = [b * 0.60, b * 0.79, b * 0.98];
+      this.planetR = Math.max(24, this.orbits[0] * 0.38);
+      this.catR = clamp(b * 0.078, 9.5, 30);
+      if (this.cat.r === 0) this.cat.r = this.orbits[0];
+      this.cat.r = clamp(this.cat.r, this.orbits[0], this.orbits[2]);
+    },
+
+    /* ---------- кэш фона и планеты ---------- */
+    buildStars: function () {
+      this.stars = [];
+      var n = Math.round(clamp((this.W * this.H) / 9000, 60, 170));
+      for (var i = 0; i < n; i++) {
+        this.stars.push({
+          x: Math.random(),
+          y: Math.random(),
+          s: rand(0.5, 2.2),
+          ph: rand(0, TAU),
+          sp: rand(0.4, 1.6)
+        });
+      }
+      this.ambient = [];
+      for (var j = 0; j < 6; j++) {
+        this.ambient.push({
+          ang: rand(0, TAU),
+          spd: rand(0.08, 0.24) * (Math.random() < 0.5 ? -1 : 1),
+          r: this.orbits[1] * rand(0.85, 1.35),
+          size: rand(7, 12),
+          ph: rand(0, TAU)
+        });
+      }
+    },
+
+    buildBg: function () {
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(this.W * this.DPR);
+      cv.height = Math.round(this.H * this.DPR);
+      var c = cv.getContext('2d');
+      c.scale(this.DPR, this.DPR);
+      var g = c.createLinearGradient(0, 0, this.W * 0.4, this.H);
+      g.addColorStop(0, '#0b0720');
+      g.addColorStop(0.45, '#0a0618');
+      g.addColorStop(1, '#12082a');
+      c.fillStyle = g;
+      c.fillRect(0, 0, this.W, this.H);
+
+      var blobs = [
+        { x: this.W * 0.18, y: this.H * 0.22, r: Math.max(this.W, this.H) * 0.55, col: 'rgba(94,45,180,.20)' },
+        { x: this.W * 0.86, y: this.H * 0.72, r: Math.max(this.W, this.H) * 0.5, col: 'rgba(255,60,140,.10)' },
+        { x: this.W * 0.55, y: this.H * 0.05, r: Math.max(this.W, this.H) * 0.36, col: 'rgba(50,120,255,.12)' }
+      ];
+      blobs.forEach(function (b) {
+        var rg = c.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        rg.addColorStop(0, b.col);
+        rg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = rg;
+        c.fillRect(0, 0, cv.width, cv.height);
+      });
+      this.bgCv = cv;
+    },
+
+    buildPlanet: function () {
+      var R = this.planetR;
+      var pad = R * 0.75;
+      var size = Math.ceil((R + pad) * 2);
+      var cv = document.createElement('canvas');
+      cv.width = size * this.DPR;
+      cv.height = size * this.DPR;
+      var c = cv.getContext('2d');
+      c.scale(this.DPR, this.DPR);
+      var m = size / 2;
+      var g = c.createRadialGradient(m - R * 0.33, m - R * 0.35, R * 0.12, m, m, R);
+      g.addColorStop(0, '#8f74ff');
+      g.addColorStop(0.45, '#4d34a8');
+      g.addColorStop(0.8, '#281a5e');
+      g.addColorStop(1, '#170d3a');
+      c.beginPath();
+      c.arc(m, m, R, 0, TAU);
+      c.fillStyle = g;
+      c.fill();
+
+      // кратеры / пятна
+      c.save();
+      c.beginPath();
+      c.arc(m, m, R, 0, TAU);
+      c.clip();
+      var spots = [
+        { x: -0.35, y: -0.3, r: 0.26, a: 0.20 },
+        { x: 0.4, y: 0.15, r: 0.34, a: 0.16 },
+        { x: -0.15, y: 0.55, r: 0.22, a: 0.22 },
+        { x: 0.55, y: -0.42, r: 0.16, a: 0.25 }
+      ];
+      spots.forEach(function (s) {
+        c.beginPath();
+        c.arc(m + s.x * R, m + s.y * R, s.r * R, 0, TAU);
+        c.fillStyle = 'rgba(255,255,255,' + s.a * 0.5 + ')';
+        c.fill();
+        c.beginPath();
+        c.arc(m + s.x * R, m + s.y * R + R * 0.05, s.r * R * 0.9, 0, TAU);
+        c.fillStyle = 'rgba(20,8,50,' + s.a + ')';
+        c.fill();
+      });
+      // атмосферный блик
+      var rim = c.createRadialGradient(m, m, R * 0.72, m, m, R * 1.02);
+      rim.addColorStop(0, 'rgba(140,110,255,0)');
+      rim.addColorStop(1, 'rgba(150,120,255,.35)');
+      c.fillStyle = rim;
+      c.beginPath();
+      c.arc(m, m, R, 0, TAU);
+      c.fill();
+      c.restore();
+
+      c.strokeStyle = 'rgba(190,170,255,.55)';
+      c.lineWidth = Math.max(1, R * 0.045);
+      c.beginPath();
+      c.arc(m, m, R - R * 0.02, 0, TAU);
+      c.stroke();
+
+      this.planetCv = cv;
+      this.planetSize = size;
+    },
+
+    /* ---------- прогон ---------- */
+    skinById: function (id) {
+      for (var i = 0; i < SKINS.length; i++) if (SKINS[i].id === id) return SKINS[i];
+      return SKINS[0];
+    },
+
+    setSkin: function (id) {
+      this.skin = this.skinById(id);
+    },
+
+    toMenu: function () {
+      this.mode = 'menu';
+      this.cat.r = this.orbits[0];
+      this.cat.targetLane = 0;
+      this.cat.lane = 0;
+      this.hazards.length = 0;
+      this.fish.length = 0;
+      this.powers.length = 0;
+      this.trail.length = 0;
+      this.texts.length = 0;
+    },
+
+    startRun: function () {
+      this.resetRun();
+      this.mode = 'playing';
+      if (global.Save) Save.countRun();
+      if (global.SDK) SDK.gameplayStart();
+    },
+
+    resetRun: function () {
+      this.time = 0;
+      this.omega = 1.62;
+      this.timeScale = 1;
+      this.slowT = 0;
+      this.magnetT = 0;
+      this.score = 0;
+      this.combo = 0;
+      this.comboT = 0;
+      this.fishCount = 0;
+      this.shield = false;
+      this.invuln = 0;
+      this.shake = 0;
+      this.flash = 0;
+      this.hitstop = 0;
+      this.hazards.length = 0;
+      this.fish.length = 0;
+      this.powers.length = 0;
+      this.parts.length = 0;
+      this.texts.length = 0;
+      this.rings.length = 0;
+      this.trail.length = 0;
+      this.cat.ang = -Math.PI / 2;
+      this.cat.lane = 0;
+      this.cat.targetLane = 0;
+      this.cat.r = this.orbits[0];
+      this.cat.pop = 0;
+      this.cat.blink = 0;
+      this.maxLanes = 2;
+      this.thirdOpen = false;
+      this.laneDir = 1;
+      this.spawnH = 1.5;
+      this.spawnF = 0.7;
+      this.spawnP = 9;
+      this.deathT = 0;
+      this.reviveUsed = false;
+      this.committed = 0;
+      this.corridorT = 0;
+      this.result = null;
+      this.tutorial = !(global.Save && Save.data.tut);
+      this.tutT = 0;
+    },
+
+    switchLane: function () {
+      if (this.mode !== 'playing') return;
+      var max = this.maxLanes;
+      var cur = this.cat.targetLane;
+      var dir = this.laneDir || 1;
+      var next = cur + dir;
+      if (next > max - 1) { dir = -1; next = max - 2; }
+      else if (next < 0) { dir = 1; next = 1; }
+      if (next < 0) next = 0;
+      if (next > max - 1) next = max - 1;
+      this.laneDir = dir;
+      this.cat.lane = next;
+      this.cat.targetLane = next;
+      this.cat.pop = 1;
+      if (this.tutorial) {
+        this.tutorial = false;
+        if (global.Save) { Save.data.tut = true; Save.save(); }
+      }
+      if (global.Sound) Sound.switchLane();
+      var x = this.catX(), y = this.catY();
+      for (var i = 0; i < 5; i++) {
+        this.parts.push({
+          x: x, y: y, vx: rand(-40, 40), vy: rand(-40, 40),
+          life: 0.3, max: 0.3, size: rand(1, 2.6), col: this.skin.trail, kind: 'spark'
+        });
+      }
+    },
+
+    pause: function () {
+      if (this.mode !== 'playing') return;
+      this.mode = 'paused';
+      if (global.SDK) SDK.gameplayStop();
+    },
+
+    resume: function () {
+      if (this.mode !== 'paused') return;
+      this.mode = 'playing';
+      if (global.SDK) SDK.gameplayStart();
+    },
+
+    revive: function () {
+      if (this.mode !== 'dead' && this.mode !== 'dying') return false;
+      this.reviveUsed = true;
+      this.mode = 'playing';
+      this.deathT = 0;
+      this.invuln = 2.4;
+      this.shake = 0;
+      // расчищаем коридор
+      var ang = this.cat.ang;
+      for (var i = this.hazards.length - 1; i >= 0; i--) {
+        var h = this.hazards[i];
+        if (Math.abs(angDiff(h.ang, ang)) < 1.5) {
+          this.explodeHazard(h);
+          this.hazards.splice(i, 1);
+        }
+      }
+      this.rings.push({ x: this.catX(), y: this.catY(), r: this.catR, r2: this.catR * 9, life: 0.7, max: 0.7, col: '#ffd166', w: 4 });
+      this.flash = 0.5;
+      if (global.SDK) SDK.gameplayStart();
+      if (global.Sound) Sound.power();
+      return true;
+    },
+
+    die: function () {
+      if (this.mode !== 'playing') return;
+      this.mode = 'dying';
+      this.deathT = 0.6;
+      this.hitstop = 0.1;
+      this.shake = 22;
+      this.flash = 0.65;
+      if (global.Sound) Sound.hit();
+      if (global.SDK) SDK.gameplayStop();
+      var x = this.catX(), y = this.catY();
+      this.rings.push({ x: x, y: y, r: this.catR, r2: this.catR * 12, life: 0.75, max: 0.75, col: '#ff5c7a', w: 5 });
+      for (var i = 0; i < 26; i++) {
+        var a = rand(0, TAU), sp = rand(40, 240);
+        this.parts.push({
+          x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: rand(0.4, 1), max: 1, size: rand(1.5, 4), col: i % 3 === 0 ? '#ffd166' : this.skin.trail, kind: 'spark'
+        });
+      }
+    },
+
+    coinValue: function () {
+      return Math.floor(this.score / 50) + this.fishCount * 2;
+    },
+
+    finishRun: function () {
+      this.mode = 'dead';
+      var total = this.coinValue();
+      var gain = Math.max(0, total - this.committed);
+      if (gain > 0) {
+        this.committed = total;
+        Save.addCoins(gain);
+      }
+      var isNew = this.score > (Save.data.best || 0);
+      Save.addBest(this.score);
+      if (isNew && this.score > 0) {
+        if (global.SDK) SDK.setScore(this.score);
+        if (global.Sound) Sound.best();
+        if (global.SDK) SDK.requestReview();
+      }
+      this.result = {
+        score: Math.floor(this.score),
+        best: Save.data.best,
+        fish: this.fishCount,
+        coins: total,
+        gain: gain,
+        isNew: isNew,
+        doubled: false
+      };
+      if (this.ui.onGameOver) this.ui.onGameOver(this.result, { canRevive: !this.reviveUsed });
+    },
+
+    /* ---------- апдейт ---------- */
+    loop: function (ts) {
+      if (!this._last) this._last = ts;
+      var dt = Math.min(0.05, (ts - this._last) / 1000);
+      this._last = ts;
+      this._fc = (this._fc || 0) + 1;
+      if (!this._fstart) { this._fstart = ts; this._fc = 1; }
+      if (ts - this._fstart >= 1000) {
+        this.fps = Math.round((this._fc * 1000) / (ts - this._fstart));
+        this._fc = 0;
+        this._fstart = ts;
+      }
+      this.update(dt);
+      this.draw();
+      requestAnimationFrame(this.loop);
+    },
+
+    update: function (dt) {
+      this.t += dt;
+      this.shake = Math.max(0, this.shake - dt * 55);
+      this.flash = Math.max(0, this.flash - dt * 2.2);
+      this.updateParticles(dt);
+
+      if (this.mode === 'playing') {
+        this.updatePlaying(dt);
+      } else if (this.mode === 'dying') {
+        this.deathT -= dt;
+        this.updateObjects(dt * 0.35, dt);
+        if (this.deathT <= 0) this.finishRun();
+      } else if (this.mode === 'menu' || this.mode === 'boot') {
+        this.updateAmbient(dt);
+      } else if (this.mode === 'dead') {
+        this.updateObjects(dt * 0.25, dt);
+      }
+    },
+
+    updateAmbient: function (dt) {
+      this.cat.ang = (this.cat.ang + dt * 0.55) % TAU;
+      this.cat.blink -= dt;
+      if (this.cat.blink < -3) this.cat.blink = 0.12;
+      for (var i = 0; i < this.ambient.length; i++) {
+        var a = this.ambient[i];
+        a.ang += a.spd * dt;
+      }
+      if (this.mode !== 'dead') {
+        this.cat.r += (this.orbits[0] - this.cat.r) * Math.min(1, dt * 3);
+      }
+    },
+
+    updatePlaying: function (dt) {
+      var gdt = dt * this.timeScale;
+
+      this.time += dt;
+      var targetTS = this.slowT > 0 ? 0.55 : 1;
+      this.timeScale += (targetTS - this.timeScale) * Math.min(1, dt * 6);
+      if (this.slowT > 0) this.slowT -= dt;
+      if (this.magnetT > 0) this.magnetT -= dt;
+
+      this.omega = 1.45 + Math.min(1.25, this.time * 0.022);
+      this.cat.ang = (this.cat.ang + this.omega * gdt) % TAU;
+
+      var targetR = this.orbits[this.cat.targetLane];
+      this.cat.r += (targetR - this.cat.r) * Math.min(1, dt * 15);
+      this.cat.pop = Math.max(0, this.cat.pop - dt * 4.5);
+      this.cat.blink -= dt;
+      if (this.cat.blink < -3.2) this.cat.blink = 0.1;
+
+      this.score += dt * 40 * (this.omega / 1.62);
+
+      if (!this.thirdOpen && this.score >= 1000) this.openThirdLane();
+
+      if (this.comboT > 0) {
+        this.comboT -= dt;
+        if (this.comboT <= 0) this.combo = 0;
+      }
+
+      this.updateTrail(dt);
+      this.spawnStuff(gdt);
+      this.updateObjects(gdt, dt);
+      this.ensureCorridor(dt);
+      this.collide();
+
+      if (this.invuln > 0) this.invuln -= dt;
+      if (this.tutorial) {
+        this.tutT += dt;
+        if (this.tutT > 6) this.tutorial = false;
+      }
+
+      if (this.ui.onHud) this.ui.onHud(this);
+    },
+
+    openThirdLane: function () {
+      this.thirdOpen = true;
+      this.maxLanes = 3;
+      this.flash = 0.32;
+      this.shake = 8;
+      this.rings.push({
+        x: this.cx, y: this.cy, r: this.orbits[2] * 0.1, r2: this.orbits[2] * 1.12,
+        life: 0.8, max: 0.8, col: '#8b5cff', w: 3
+      });
+      this.texts.push({
+        x: this.cx, y: this.cy - this.orbits[2] * 0.5, vy: -18, life: 1.8, max: 1.8,
+        text: (global.t ? t('event.third') : '3-я ОРБИТА'), col: '#c9b6ff', size: 15
+      });
+      if (global.Sound) Sound.power();
+    },
+
+    updateTrail: function (dt) {
+      this.trail.push({ x: this.catX(), y: this.catY() });
+      var maxLen = this.catR * 7.5, total = 0;
+      for (var i = this.trail.length - 1; i > 0; i--) {
+        var dx = this.trail[i].x - this.trail[i - 1].x;
+        var dy = this.trail[i].y - this.trail[i - 1].y;
+        total += Math.sqrt(dx * dx + dy * dy);
+        if (total > maxLen) { this.trail.splice(0, i - 1); break; }
+      }
+      if (this.trail.length > 60) this.trail.splice(0, this.trail.length - 60);
+      if (this.trail.length > 3 && Math.random() < 0.55) {
+        var last = this.trail[this.trail.length - 1];
+        this.parts.push({
+          x: last.x + rand(-3, 3), y: last.y + rand(-3, 3),
+          vx: rand(-12, 12), vy: rand(-12, 12),
+          life: rand(0.2, 0.5), max: 0.5, size: rand(1, 2.4), col: this.skin.trail, kind: 'spark'
+        });
+      }
+    },
+
+    catX: function () { return this.cx + Math.cos(this.cat.ang) * this.cat.r; },
+    catY: function () { return this.cy + Math.sin(this.cat.ang) * this.cat.r; },
+
+    lanes: function () {
+      var out = [];
+      for (var i = 0; i < this.maxLanes; i++) out.push(i);
+      return out;
+    },
+
+    spotFree: function (lane, ang, gap) {
+      for (var i = 0; i < this.hazards.length; i++) {
+        var h = this.hazards[i];
+        if (h.lane === lane && Math.abs(angDiff(h.ang, ang)) < gap) return false;
+      }
+      return true;
+    },
+
+    laneBlocked: function (lane, ang, gap) {
+      for (var i = 0; i < this.hazards.length; i++) {
+        var h = this.hazards[i];
+        if (h.lane === lane && Math.abs(angDiff(h.ang, ang)) < gap) return true;
+      }
+      return false;
+    },
+
+    anyLaneFree: function (ang, gap) {
+      for (var l = 0; l < this.maxLanes; l++) {
+        if (!this.laneBlocked(l, ang, gap)) return true;
+      }
+      return false;
+    },
+
+    // расстояние по дуге (в пикселях) между двумя углами на орбите
+    arcDist: function (lane, a, b) {
+      return Math.abs(angDiff(a, b)) * this.orbits[lane];
+    },
+
+    // астероид, реально перекрывающий дорожку в этой точке
+    hazardBlocks: function (lane, ang, skip) {
+      for (var i = 0; i < this.hazards.length; i++) {
+        var h = this.hazards[i];
+        if (h === skip || h.lane !== lane) continue;
+        if (this.arcDist(lane, h.ang, ang) < this.catR * 1.15 + h.size * 0.95) return h;
+      }
+      return null;
+    },
+
+    // есть ли хоть одна свободная дорожка в этой точке орбиты
+    escapeFree: function (ang) {
+      for (var l = 0; l < this.maxLanes; l++) {
+        if (!this.hazardBlocks(l, ang)) return l;
+      }
+      return -1;
+    },
+
+    /* Страховка от «глухих» стен: если впереди все дорожки перекрыты —
+       убираем один астероид, чтобы всегда оставался проходимый коридор. */
+    ensureCorridor: function (dt) {
+      this.corridorT = (this.corridorT || 0) - dt;
+      if (this.corridorT > 0) return;
+      this.corridorT = 0.1;
+      var steps = 20, span = 3.4;
+      for (var s = 0; s <= steps; s++) {
+        var ang = this.cat.ang + (s / steps) * span;
+        if (this.escapeFree(ang) < 0) this.breakWall(ang);
+      }
+    },
+
+    breakWall: function (ang) {
+      var cand = [];
+      for (var i = 0; i < this.hazards.length; i++) {
+        var h = this.hazards[i];
+        var d = this.arcDist(h.lane, h.ang, ang);
+        if (d < this.catR * 2.2 + h.size * 1.8) cand.push({ h: h, d: d });
+      }
+      if (!cand.length) return;
+      cand.sort(function (a, b) { return a.d - b.d; });
+      for (var k = 0; k < cand.length; k++) {
+        var hh = cand[k].h;
+        for (var l = 0; l < this.maxLanes; l++) {
+          if (!this.hazardBlocks(l, ang, hh)) {
+            this.removeHazard(hh);
+            return;
+          }
+        }
+      }
+      this.removeHazard(cand[0].h);
+    },
+
+    removeHazard: function (h) {
+      var idx = this.hazards.indexOf(h);
+      if (idx < 0) return;
+      this.explodeHazard(h);
+      this.hazards.splice(idx, 1);
+    },
+
+    spawnStuff: function (gdt) {
+      // астероиды
+      this.spawnH -= gdt;
+      if (this.spawnH <= 0) {
+        this.spawnH = Math.max(0.5, 1.1 - this.time * 0.011) * rand(0.85, 1.2);
+        if (this.hazards.length < 18) this.trySpawnHazard();
+      }
+      // рыбки
+      this.spawnF -= gdt;
+      if (this.spawnF <= 0) {
+        this.spawnF = Math.max(0.34, 0.78 - this.time * 0.006) * rand(0.8, 1.25);
+        if (this.fish.length < 10) this.trySpawnFish();
+      }
+      // бонусы
+      this.spawnP -= gdt;
+      if (this.spawnP <= 0) {
+        this.spawnP = rand(11, 16);
+        if (this.powers.length < 2) this.trySpawnPower();
+      }
+    },
+
+    trySpawnHazard: function () {
+      for (var attempt = 0; attempt < 14; attempt++) {
+        var lane = pick(this.lanes());
+        var ang = (this.cat.ang + rand(2.6, 5.6)) % TAU;
+        if (!this.spotFree(lane, ang, 0.42)) continue;
+        // коридор должен оставаться свободным и рядом с точкой спавна
+        var wall = false;
+        for (var q = -2; q <= 2; q++) {
+          if (this.escapeFree(ang + q * 0.14) < 0) { wall = true; break; }
+        }
+        if (wall) continue;
+        // не спавним слишком близко к рыбе на этой же дорожке
+        var bad = false;
+        for (var i = 0; i < this.fish.length; i++) {
+          var f = this.fish[i];
+          if (f.lane === lane && Math.abs(angDiff(f.ang, ang)) < 0.2) { bad = true; break; }
+        }
+        if (bad) continue;
+
+        var size = clamp(this.catR * rand(0.95, 1.25), 10, 30);
+        // астероиды не должны накладываться друг на друга на одной орбите
+        var stacked = false;
+        for (var j = 0; j < this.hazards.length; j++) {
+          var hz = this.hazards[j];
+          if (hz.lane !== lane) continue;
+          if (this.arcDist(lane, hz.ang, ang) < (size + hz.size) * 1.55) { stacked = true; break; }
+        }
+        if (stacked) continue;
+        this.hazards.push({
+          ang: ang,
+          lane: lane,
+          r: this.orbits[lane],
+          spd: Math.random() < 0.74 ? 0 : (Math.random() < 0.5 ? -1 : 1) * rand(0.08, 0.3),
+          size: size,
+          rot: rand(0, TAU),
+          rotSpd: rand(-2.4, 2.4),
+          life: rand(5.5, 8),
+          fade: 0,
+          near: false,
+          poly: this.makePoly(size)
+        });
+        // рыбок, оказавшихся вплотную к новому астероиду, убираем
+        for (var fi = this.fish.length - 1; fi >= 0; fi--) {
+          var ff = this.fish[fi];
+          if (ff.lane !== lane) continue;
+          if (this.arcDist(lane, ff.ang, ang) < (size + ff.size) * 1.9) this.fish.splice(fi, 1);
+        }
+        return;
+      }
+    },
+
+    makePoly: function (size) {
+      var pts = [], n = 7;
+      for (var i = 0; i < n; i++) {
+        var a = (i / n) * TAU;
+        var rr = size * rand(0.78, 1.15);
+        pts.push({ x: Math.cos(a) * rr, y: Math.sin(a) * rr });
+      }
+      return pts;
+    },
+
+    trySpawnFish: function () {
+      for (var attempt = 0; attempt < 10; attempt++) {
+        var lane = pick(this.lanes());
+        var ang = (this.cat.ang + rand(0.85, 4.6)) % TAU;
+        if (this.laneBlocked(lane, ang, 0.3)) continue;
+        var fsize = clamp(this.catR * 0.82, 7, 20);
+        // не ставим рыбку вплотную к астероиду — чтобы не выглядело приманкой-ловушкой
+        var tooClose = false;
+        for (var hh = 0; hh < this.hazards.length; hh++) {
+          var hz = this.hazards[hh];
+          if (hz.lane !== lane) continue;
+          if (this.arcDist(lane, hz.ang, ang) < (hz.size + fsize) * 1.9) { tooClose = true; break; }
+        }
+        if (tooClose) continue;
+        var dup = false;
+        for (var i = 0; i < this.fish.length; i++) {
+          var f = this.fish[i];
+          if (f.lane === lane && Math.abs(angDiff(f.ang, ang)) < 0.34) { dup = true; break; }
+        }
+        if (dup) continue;
+
+        var stream = Math.random() < 0.3 ? 3 : 1;
+        for (var k = 0; k < stream; k++) {
+          var a2 = ang + k * 0.44;
+          if (this.laneBlocked(lane, a2, 0.22)) break;
+          this.fish.push({
+            ang: a2, lane: lane, r: this.orbits[lane],
+            size: fsize,
+            ph: rand(0, TAU), life: rand(10, 15), fade: 1
+          });
+        }
+        return;
+      }
+    },
+
+    trySpawnPower: function () {
+      for (var attempt = 0; attempt < 8; attempt++) {
+        var lane = pick(this.lanes());
+        var ang = (this.cat.ang + rand(1.2, 4.4)) % TAU;
+        if (!this.spotFree(lane, ang, 0.36)) continue;
+        var type = pick(['shield', 'magnet', 'slow']);
+        this.powers.push({
+          ang: ang, lane: lane, r: this.orbits[lane], type: type,
+          size: clamp(this.catR * 0.95, 9, 22), ph: rand(0, TAU), life: 16, fade: 1
+        });
+        return;
+      }
+    },
+
+    updateObjects: function (gdt, dt) {
+      var i, o;
+      // астероиды
+      for (i = this.hazards.length - 1; i >= 0; i--) {
+        o = this.hazards[i];
+        o.ang = (o.ang + o.spd * gdt) % TAU;
+        // дрейфующий астероид останавливается, чтобы не наползти на соседний
+        if (o.spd) {
+          for (var j = 0; j < this.hazards.length; j++) {
+            var o2 = this.hazards[j];
+            if (o2 === o || o2.lane !== o.lane) continue;
+            if (this.arcDist(o.lane, o2.ang, o.ang) < (o.size + o2.size) * 1.45) { o.spd = 0; break; }
+          }
+        }
+        o.rot += o.rotSpd * dt;
+        o.life -= gdt;
+        if (o.life <= 0) o.fade -= dt * 1.8;
+        else if (o.fade < 1) o.fade = Math.min(1, o.fade + dt * 2.6);
+        if (o.fade <= 0) this.hazards.splice(i, 1);
+      }
+      // рыбки
+      for (i = this.fish.length - 1; i >= 0; i--) {
+        o = this.fish[i];
+        o.ang = (o.ang + 0.0) % TAU;
+        o.life -= gdt;
+        if (o.life <= 0) o.fade -= dt * 2;
+        else if (o.fade < 1) o.fade = Math.min(1, o.fade + dt * 3);
+        if (o.fade <= 0) this.fish.splice(i, 1);
+      }
+      // бонусы
+      for (i = this.powers.length - 1; i >= 0; i--) {
+        o = this.powers[i];
+        o.life -= gdt;
+        if (o.life <= 0) o.fade -= dt * 2;
+        if (o.fade <= 0) this.powers.splice(i, 1);
+      }
+    },
+
+    collide: function () {
+      var catX = this.catX(), catY = this.catY();
+      var i, o, dx, dy, dist2, rr, hx, hy;
+
+      // астероиды
+      for (i = this.hazards.length - 1; i >= 0; i--) {
+        o = this.hazards[i];
+        if (o.fade < 0.82) continue;
+        hx = this.cx + Math.cos(o.ang) * o.r;
+        hy = this.cy + Math.sin(o.ang) * o.r;
+        dx = catX - hx; dy = catY - hy;
+        dist2 = dx * dx + dy * dy;
+        rr = this.catR * 0.62 + o.size * 0.74;
+        if (dist2 < rr * rr) {
+          this.hazards.splice(i, 1);
+          if (!this.god) this.hit(o);
+          continue;
+        }
+        if (!o.near && dist2 < rr * rr * 3.2) {
+          o.near = true;
+          this.score += 6;
+          for (var k = 0; k < 3; k++) {
+            this.parts.push({
+              x: catX, y: catY, vx: rand(-30, 30), vy: rand(-30, 30),
+              life: 0.28, max: 0.28, size: rand(1, 2), col: '#fff', kind: 'spark'
+            });
+          }
+        }
+      }
+
+      // рыбки
+      for (i = this.fish.length - 1; i >= 0; i--) {
+        o = this.fish[i];
+        if (o.fade < 0.5) continue;
+        hx = this.cx + Math.cos(o.ang) * o.r;
+        hy = this.cy + Math.sin(o.ang) * o.r;
+        dx = catX - hx; dy = catY - hy;
+        rr = this.catR * 0.9 + o.size * 0.95;
+        if (dx * dx + dy * dy < rr * rr) {
+          this.fish.splice(i, 1);
+          this.collectFish(o);
+        }
+      }
+
+      // бонусы
+      for (i = this.powers.length - 1; i >= 0; i--) {
+        o = this.powers[i];
+        hx = this.cx + Math.cos(o.ang) * o.r;
+        hy = this.cy + Math.sin(o.ang) * o.r;
+        dx = catX - hx; dy = catY - hy;
+        rr = this.catR + o.size;
+        if (dx * dx + dy * dy < rr * rr) {
+          this.powers.splice(i, 1);
+          this.takePower(o);
+        }
+      }
+    },
+
+    collectFish: function (f) {
+      var mult = 1 + Math.min(7, Math.floor(this.combo / 4));
+      this.combo += 1;
+      this.comboT = 3.1;
+      var add = 25 * mult;
+      this.score += add;
+      this.fishCount += 1;
+      Save.addFish(1);
+
+      var x = this.cx + Math.cos(f.ang) * f.r;
+      var y = this.cy + Math.sin(f.ang) * f.r;
+      this.texts.push({
+        x: x, y: y - 8, vy: -34, life: 0.75, max: 0.75,
+        text: '+' + add, col: mult > 1 ? '#ffd166' : '#fff2c9', size: mult > 1 ? 15 : 12
+      });
+      this.rings.push({ x: x, y: y, r: f.size * 0.6, r2: f.size * 2.6, life: 0.35, max: 0.35, col: '#ffd166', w: 2 });
+      for (var i = 0; i < 6; i++) {
+        var a = rand(0, TAU), sp = rand(20, 90);
+        this.parts.push({
+          x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: rand(0.25, 0.55), max: 0.55, size: rand(1, 2.6), col: i % 2 ? '#ffd166' : '#fff', kind: 'spark'
+        });
+      }
+      if (global.Sound) Sound.pickup(this.combo);
+      if (this.ui.onCombo) this.ui.onCombo(this.combo);
+    },
+
+    takePower: function (p) {
+      var x = this.cx + Math.cos(p.ang) * p.r;
+      var y = this.cy + Math.sin(p.ang) * p.r;
+      var label = '';
+      if (p.type === 'shield') {
+        this.shield = true;
+        label = global.t ? t('power.shield') : 'ЩИТ';
+        if (this.ui.onPower) this.ui.onPower('shield');
+      } else if (p.type === 'magnet') {
+        this.magnetT = 7;
+        label = global.t ? t('power.magnet') : 'МАГНИТ';
+        if (this.ui.onPower) this.ui.onPower('magnet');
+      } else {
+        this.slowT = 5;
+        label = global.t ? t('power.slow') : 'ЗАМЕДЛЕНИЕ';
+        if (this.ui.onPower) this.ui.onPower('slow');
+      }
+      this.texts.push({ x: x, y: y - 10, vy: -30, life: 1.1, max: 1.1, text: label, col: '#a7f3cd', size: 13 });
+      this.rings.push({ x: x, y: y, r: p.size * 0.5, r2: p.size * 4, life: 0.5, max: 0.5, col: '#67e8a5', w: 2.5 });
+      if (global.Sound) Sound.power();
+    },
+
+    hit: function (h) {
+      var x = this.cx + Math.cos(h.ang) * h.r;
+      var y = this.cy + Math.sin(h.ang) * h.r;
+      this._lastHit = {
+        t: +this.time.toFixed(2),
+        catLane: this.cat.targetLane,
+        catR: Math.round(this.cat.r),
+        hLane: h.lane,
+        hFade: +h.fade.toFixed(2),
+        hAng: +h.ang.toFixed(2),
+        catAng: +this.cat.ang.toFixed(2),
+        invuln: this.invuln > 0,
+        shield: this.shield
+      };
+      if (this.invuln > 0) {
+        this.burstRock(x, y, h.size);
+        return;
+      }
+      if (this.shield) {
+        this.shield = false;
+        this.invuln = 1.5;
+        this.shake = 14;
+        this.flash = 0.25;
+        this.burstRock(x, y, h.size);
+        this.rings.push({ x: this.catX(), y: this.catY(), r: this.catR, r2: this.catR * 6, life: 0.5, max: 0.5, col: '#5cc8ff', w: 3 });
+        if (global.Sound) Sound.shield();
+        if (this.ui.onPower) this.ui.onPower('shield-broken');
+        return;
+      }
+      this.burstRock(x, y, h.size);
+      this.die();
+    },
+
+    burstRock: function (x, y, size) {
+      for (var i = 0; i < 12; i++) {
+        var a = rand(0, TAU), sp = rand(30, 170);
+        this.parts.push({
+          x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+          life: rand(0.3, 0.7), max: 0.7, size: rand(1.5, 3.6), col: i % 3 ? '#ff8a5c' : '#ffd166', kind: 'spark'
+        });
+      }
+      this.rings.push({ x: x, y: y, r: size * 0.4, r2: size * 3.4, life: 0.4, max: 0.4, col: '#ff6b6b', w: 2.5 });
+    },
+
+    explodeHazard: function (h) {
+      this.burstRock(this.cx + Math.cos(h.ang) * h.r, this.cy + Math.sin(h.ang) * h.r, h.size);
+    },
+
+    updateParticles: function (dt) {
+      var i;
+      for (i = this.parts.length - 1; i >= 0; i--) {
+        var p = this.parts[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= (1 - dt * 2.4);
+        p.vy *= (1 - dt * 2.4);
+        p.life -= dt;
+        if (p.life <= 0) this.parts.splice(i, 1);
+      }
+      if (this.parts.length > 420) this.parts.splice(0, this.parts.length - 420);
+      for (i = this.rings.length - 1; i >= 0; i--) {
+        var r = this.rings[i];
+        r.life -= dt;
+        if (r.life <= 0) this.rings.splice(i, 1);
+      }
+      for (i = this.texts.length - 1; i >= 0; i--) {
+        var tx = this.texts[i];
+        tx.y += tx.vy * dt;
+        tx.vy *= (1 - dt * 1.6);
+        tx.life -= dt;
+        if (tx.life <= 0) this.texts.splice(i, 1);
+      }
+    },
+
+    /* ---------- отрисовка ---------- */
+    draw: function () {
+      var ctx = this.ctx;
+      ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+      var sx = 0, sy = 0;
+      if (this.shake > 0.3) {
+        sx = rand(-1, 1) * this.shake;
+        sy = rand(-1, 1) * this.shake;
+      }
+      ctx.save();
+      ctx.translate(sx, sy);
+
+      if (this.bgCv) ctx.drawImage(this.bgCv, 0, 0, this.W, this.H);
+      else { ctx.fillStyle = '#0a0716'; ctx.fillRect(0, 0, this.W, this.H); }
+
+      this.drawStars(ctx);
+
+      if (this.mode !== 'boot' && this.mode !== 'menu') this.drawRings(ctx);
+      this.drawPlanet(ctx);
+      this.drawAmbient(ctx);
+
+      if (this.mode === 'playing' || this.mode === 'paused' || this.mode === 'dying' || this.mode === 'dead') {
+        this.drawObjects(ctx);
+        this.drawTrail(ctx);
+      }
+      this.drawCatNow(ctx);
+      this.drawFX(ctx);
+      ctx.restore();
+
+      this.drawOverlay(ctx);
+    },
+
+    drawStars: function (ctx) {
+      var t = this.t;
+      for (var i = 0; i < this.stars.length; i++) {
+        var s = this.stars[i];
+        var a = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph));
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 7 === 0 ? '#cfc0ff' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(s.x * this.W, s.y * this.H, s.s, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    },
+
+    drawPlanet: function (ctx) {
+      if (!this.planetCv) return;
+      var R = this.planetR;
+      var s = this.planetSize;
+      ctx.save();
+      // атмосферное свечение
+      var g = ctx.createRadialGradient(this.cx, this.cy, R * 0.85, this.cx, this.cy, R * 2.1);
+      g.addColorStop(0, 'rgba(124,92,255,.20)');
+      g.addColorStop(1, 'rgba(124,92,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(this.cx, this.cy, R * 2.1, 0, TAU);
+      ctx.fill();
+
+      ctx.translate(this.cx, this.cy);
+      ctx.rotate(this.t * 0.05);
+      ctx.drawImage(this.planetCv, -s / 2, -s / 2, s, s);
+      ctx.restore();
+    },
+
+    drawRings: function (ctx) {
+      var active = this.cat.targetLane;
+      for (var i = 0; i < this.maxLanes; i++) {
+        var r = this.orbits[i];
+        var on = i === active;
+        ctx.beginPath();
+        ctx.arc(this.cx, this.cy, r, 0, TAU);
+        ctx.setLineDash(on ? [2, 9] : [1, 13]);
+        ctx.lineWidth = on ? 2 : 1.4;
+        ctx.strokeStyle = on ? 'rgba(178,150,255,.72)' : 'rgba(255,255,255,.22)';
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      // третья орбита — намёк
+      if (!this.thirdOpen && this.score > 700) {
+        ctx.beginPath();
+        ctx.arc(this.cx, this.cy, this.orbits[2], 0, TAU);
+        ctx.setLineDash([2, 14]);
+        ctx.strokeStyle = 'rgba(139,92,255,' + (0.1 + 0.12 * (0.5 + 0.5 * Math.sin(this.t * 3))) + ')';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    },
+
+    drawAmbient: function (ctx) {
+      if (this.mode !== 'menu' && this.mode !== 'boot') return;
+      for (var i = 0; i < this.ambient.length; i++) {
+        var a = this.ambient[i];
+        var x = this.cx + Math.cos(a.ang) * a.r + Math.sin(a.ang * 3) * 4;
+        var y = this.cy + Math.sin(a.ang) * a.r;
+        this.drawGlow(ctx, '#ffd166', x, y, a.size * 2.8, 0.3);
+        this.drawFish(ctx, x, y, a.size, a.ang + Math.PI / 2, 0.9, this.t + a.ph);
+      }
+    },
+
+    drawObjects: function (ctx) {
+      var i;
+      for (i = 0; i < this.hazards.length; i++) this.drawHazard(ctx, this.hazards[i]);
+      for (i = 0; i < this.powers.length; i++) this.drawPower(ctx, this.powers[i]);
+      for (i = 0; i < this.fish.length; i++) this.drawFishObj(ctx, this.fish[i]);
+    },
+
+    drawHazard: function (ctx, h) {
+      var x = this.cx + Math.cos(h.ang) * h.r;
+      var y = this.cy + Math.sin(h.ang) * h.r;
+      var s = h.size;
+      ctx.save();
+      ctx.translate(x, y);
+      this.drawGlow(ctx, '#ff4d6d', 0, 0, s * 2.3, 0.5 * h.fade);
+      ctx.globalAlpha = h.fade;
+
+      ctx.rotate(h.rot);
+      ctx.beginPath();
+      ctx.moveTo(h.poly[0].x, h.poly[0].y);
+      for (var p = 1; p < h.poly.length; p++) ctx.lineTo(h.poly[p].x, h.poly[p].y);
+      ctx.closePath();
+      ctx.fillStyle = '#3c1c32';
+      ctx.fill();
+      ctx.lineWidth = Math.max(1.6, s * 0.12);
+      ctx.strokeStyle = '#ff6079';
+      ctx.stroke();
+
+      // объём: светлая грань
+      ctx.beginPath();
+      for (var q = 0; q < h.poly.length; q++) {
+        var pq = h.poly[q];
+        if (q === 0) ctx.moveTo(pq.x * 0.55, pq.y * 0.55); else ctx.lineTo(pq.x * 0.55, pq.y * 0.55);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,140,160,.13)';
+      ctx.fill();
+
+      // шипы
+      ctx.strokeStyle = 'rgba(255,120,140,.75)';
+      ctx.lineWidth = Math.max(1, s * 0.07);
+      for (var k = 0; k < h.poly.length; k++) {
+        if (k % 2) continue;
+        ctx.beginPath();
+        ctx.moveTo(h.poly[k].x * 0.9, h.poly[k].y * 0.9);
+        ctx.lineTo(h.poly[k].x * 1.22, h.poly[k].y * 1.22);
+        ctx.stroke();
+      }
+
+      // ядро
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.28, 0, TAU);
+      ctx.fillStyle = 'rgba(255,140,120,.55)';
+      ctx.fill();
+      ctx.restore();
+    },
+
+    drawFish: function (ctx, x, y, size, rot, alpha, time) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.globalAlpha = alpha;
+      var wag = Math.sin((time || 0) * 8) * 0.25;
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 1.15, size * 0.72, 0, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-size * 1.0, 0);
+      ctx.lineTo(-size * 1.75, -size * 0.75 + wag * size);
+      ctx.lineTo(-size * 1.7, size * 0.75 + wag * size);
+      ctx.closePath();
+      ctx.fillStyle = '#ffb03a';
+      ctx.fill();
+      ctx.globalAlpha = alpha * 0.9;
+      ctx.beginPath();
+      ctx.arc(size * 0.5, -size * 0.18, size * 0.14, 0, TAU);
+      ctx.fillStyle = '#5a3300';
+      ctx.fill();
+      ctx.restore();
+    },
+
+    drawFishObj: function (ctx, f) {
+      var bob = Math.sin(this.t * 3 + f.ph) * 2.2;
+      var x = this.cx + Math.cos(f.ang) * (f.r + bob);
+      var y = this.cy + Math.sin(f.ang) * (f.r + bob);
+      this.drawGlow(ctx, '#ffd166', x, y, f.size * 2.6, 0.55 * f.fade);
+      this.drawFish(ctx, x, y, f.size, f.ang + Math.PI / 2, f.fade, this.t + f.ph);
+    },
+
+    drawPower: function (ctx, p) {
+      var x = this.cx + Math.cos(p.ang) * p.r;
+      var y = this.cy + Math.sin(p.ang) * p.r;
+      var s = p.size;
+      var col = p.type === 'shield' ? '#5cc8ff' : p.type === 'magnet' ? '#ff8ecd' : '#67e8a5';
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = p.fade;
+      this.drawGlow(ctx, col, 0, 0, s * 2.4, 0.4 * p.fade);
+
+      ctx.rotate(this.t * 1.2);
+      ctx.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var a = (i / 6) * TAU;
+        var px = Math.cos(a) * s, py = Math.sin(a) * s;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(16,12,34,.92)';
+      ctx.fill();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.rotate(-this.t * 1.2);
+
+      // пиктограмма
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = Math.max(1.4, s * 0.14);
+      ctx.lineCap = 'round';
+      if (p.type === 'shield') {
+        ctx.beginPath();
+        ctx.moveTo(0, -s * 0.52);
+        ctx.lineTo(s * 0.44, -s * 0.3);
+        ctx.lineTo(s * 0.44, s * 0.08);
+        ctx.quadraticCurveTo(s * 0.4, s * 0.5, 0, s * 0.62);
+        ctx.quadraticCurveTo(-s * 0.4, s * 0.5, -s * 0.44, s * 0.08);
+        ctx.lineTo(-s * 0.44, -s * 0.3);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (p.type === 'magnet') {
+        ctx.beginPath();
+        ctx.arc(0, -s * 0.05, s * 0.38, Math.PI, 0, true);
+        ctx.lineTo(s * 0.38, s * 0.42);
+        ctx.moveTo(-s * 0.38, -s * 0.05);
+        ctx.lineTo(-s * 0.38, s * 0.42);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.38, 0, TAU);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -s * 0.28);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(s * 0.22, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    drawTrail: function (ctx) {
+      var n = this.trail.length;
+      if (n < 3) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = this.skin.trail;
+      var chunks = 6;
+      var per = Math.ceil((n - 1) / chunks);
+      for (var c = 0; c < chunks; c++) {
+        var start = c * per;
+        if (start >= n - 1) break;
+        var end = Math.min(n - 1, start + per);
+        var k = (start + 1) / n;
+        ctx.globalAlpha = 0.06 + 0.5 * k * k;
+        ctx.lineWidth = Math.max(1, this.catR * 1.15 * k);
+        ctx.beginPath();
+        for (var i = start; i <= end; i++) {
+          var p = this.trail[i];
+          if (i === start) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    drawCatNow: function (ctx) {
+      if (this.mode === 'dying' || (this.mode === 'dead' && this.deathT <= 0)) return;
+      var x = this.catX(), y = this.catY();
+      var alpha = 1;
+      if (this.invuln > 0) alpha = 0.55 + 0.45 * Math.sin(this.t * 26);
+      var blink = this.cat.blink > 0;
+
+      if (this.shield) {
+        ctx.save();
+        ctx.globalAlpha = 0.5 + 0.25 * Math.sin(this.t * 5);
+        ctx.strokeStyle = '#5cc8ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, this.catR * 2, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#5cc8ff';
+        ctx.fill();
+        ctx.restore();
+      }
+      if (this.magnetT > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.18 + 0.08 * Math.sin(this.t * 8);
+        ctx.strokeStyle = '#ff8ecd';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 8]);
+        ctx.beginPath();
+        ctx.arc(x, y, this.catR * 5, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // мягкое свечение под котом
+      this.drawGlow(ctx, this.skin.trail, x, y, this.catR * 2.6, 0.75);
+
+      drawCat(ctx, x, y, this.catR, this.skin, this.t, alpha, blink, this.cat.pop);
+    },
+
+    hexA: function (hex, a) {
+      return rgba(hex, a);
+    },
+
+    getGlow: function (color) {
+      if (this.glowCache[color]) return this.glowCache[color];
+      var s = 96;
+      var cv = document.createElement('canvas');
+      cv.width = s; cv.height = s;
+      var c = cv.getContext('2d');
+      var g = c.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+      g.addColorStop(0, rgba(color, 0.95));
+      g.addColorStop(0.35, rgba(color, 0.32));
+      g.addColorStop(1, rgba(color, 0));
+      c.fillStyle = g;
+      c.fillRect(0, 0, s, s);
+      this.glowCache[color] = cv;
+      return cv;
+    },
+
+    glowGrad: function (color, r) {
+      var key = color + '|' + r;
+      if (!this._gradCache) this._gradCache = {};
+      if (this._gradCache[key]) return this._gradCache[key];
+      var g = this.ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, rgba(color, 0.9));
+      g.addColorStop(0.38, rgba(color, 0.26));
+      g.addColorStop(1, rgba(color, 0));
+      this._gradCache[key] = g;
+      return g;
+    },
+
+    drawGlow: function (ctx, color, x, y, size, alpha) {
+      if (this.noGlow) return;
+      var r = Math.max(8, Math.round(size / 6) * 6);
+      var g = this.glowGrad(color, r);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = alpha;
+      ctx.translate(x, y);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    },
+
+    drawFX: function (ctx) {
+      var i;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (i = 0; i < this.parts.length; i++) {
+        var p = this.parts[i];
+        var k = clamp(p.life / p.max, 0, 1);
+        ctx.globalAlpha = k * 0.9;
+        ctx.fillStyle = p.col;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (0.4 + k * 0.8), 0, TAU);
+        ctx.fill();
+      }
+      for (i = 0; i < this.rings.length; i++) {
+        var r = this.rings[i];
+        var kk = 1 - r.life / r.max;
+        ctx.globalAlpha = (1 - kk) * 0.8;
+        ctx.strokeStyle = r.col;
+        ctx.lineWidth = r.w * (1 - kk * 0.6);
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, lerp(r.r, r.r2, kk), 0, TAU);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      for (i = 0; i < this.texts.length; i++) {
+        var tx = this.texts[i];
+        var k2 = clamp(tx.life / tx.max, 0, 1);
+        ctx.globalAlpha = Math.min(1, k2 * 1.6);
+        ctx.fillStyle = tx.col;
+        ctx.font = '800 ' + tx.size + 'px "Segoe UI",system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = tx.col;
+        ctx.shadowBlur = 10;
+        ctx.fillText(tx.text, tx.x, tx.y);
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
+    },
+
+    drawOverlay: function (ctx) {
+      // виньетка
+      var g = ctx.createRadialGradient(this.cx, this.cy, Math.min(this.W, this.H) * 0.32, this.cx, this.cy, Math.max(this.W, this.H) * 0.78);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,.55)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, this.W, this.H);
+
+      if (this.slowT > 0) {
+        ctx.fillStyle = 'rgba(90,180,255,' + (0.05 + 0.03 * Math.sin(this.t * 6)) + ')';
+        ctx.fillRect(0, 0, this.W, this.H);
+      }
+      if (this.flash > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (this.flash * 0.5) + ')';
+        ctx.fillRect(0, 0, this.W, this.H);
+      }
+    },
+
+    /* превью для магазина */
+    drawSkinPreview: function (canvas, skinId) {
+      var ctx = canvas.getContext('2d');
+      var dpr = clamp(window.devicePixelRatio || 1, 1, 2);
+      var w = canvas.clientWidth || 72;
+      canvas.width = w * dpr;
+      canvas.height = w * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, w);
+      var skin = this.skinById(skinId);
+      var cx = w / 2, cy = w / 2 + w * 0.06;
+      var r = w * 0.27;
+      this.drawGlow(ctx, skin.trail, cx, cy, w * 0.6, 0.5);
+      drawCat(ctx, cx, cy, r, skin, this.t, 1, false, 0);
+    }
+  };
+
+  App.drawCat = drawCat;
+  global.App = App;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    App.init();
+  });
+})(window);
+
+</script>
+<script>
+/* UI: экраны, HUD, магазин, бонусы, лидерборд, настройки */
+(function (global) {
+  'use strict';
+
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function fmt(n) { return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+  var UI = {
+    screen: null,
+    hudAt: 0,
+    lastScore: -1,
+    toastTimer: null,
+    resetArmed: false,
+    resetTimer: null,
+    _busy: false,
+
+    init: function () {
+      var self = this;
+
+      I18n.set((SDK && SDK.lang) || 'ru');
+      I18n.apply();
+
+      Save.init();
+      App.setSkin(Save.data.skin);
+
+      this.applySettings();
+      this.refreshMenu();
+      this.bind();
+      this.bindGameHooks();
+
+      Ads.noAds = !!Save.data.noAds;
+      Ads.onBefore = function () { Sound.suspend(); };
+      Ads.onAfter = function () { Sound.resume(); };
+
+      SDK.onPlatformPause = function () {
+        if (App.mode === 'playing') self.onAutoPause();
+      };
+
+      // сначала показываем меню, SDK догружаем в фоне
+      var menuShown = false;
+      var showMenu = function () {
+        if (menuShown) return;
+        menuShown = true;
+        self.showMenu();
+        SDK.loadingReady();
+      };
+      setTimeout(showMenu, 2600);
+
+      SDK.init().then(function () {
+        I18n.set(SDK.lang || 'ru');
+        I18n.apply();
+        self.refreshMenu();
+        self.syncToggles();
+        showMenu();
+        SDK.loadingReady();
+        return Save.syncCloud().then(function (changed) {
+          if (changed) {
+            App.setSkin(Save.data.skin);
+            self.applySettings();
+            self.refreshMenu();
+          }
+          if (Save.data.noAds) Ads.noAds = true;
+          self.refreshDots();
+          self.loadCatalog();
+          if (global.SDK && SDK.ysdk) {
+            SDK.getPurchases().then(function (list) {
+              (list || []).forEach(function (p) {
+                if (p.productId === 'no_ads') {
+                  Save.data.noAds = true;
+                  Ads.noAds = true;
+                  Save.save();
+                }
+              });
+            });
+          }
+        });
+      }).catch(function () { showMenu(); });
+    },
+
+    bind: function () {
+      var self = this;
+
+      $('#btn-play').addEventListener('click', function () { self.play(); });
+      $('#btn-shop').addEventListener('click', function () { self.openShop(); });
+      $('#btn-daily').addEventListener('click', function () { self.openDaily(); });
+      $('#btn-leaders').addEventListener('click', function () { self.openLeaders(); });
+      $('#btn-settings').addEventListener('click', function () { self.showScreen('scr-settings'); });
+      $('#btn-howto').addEventListener('click', function () { self.showScreen('scr-howto'); });
+
+      $('#btn-pause').addEventListener('click', function () { self.onAutoPause(); });
+      $('#btn-resume').addEventListener('click', function () { self.resume(); });
+      $('#btn-restart').addEventListener('click', function () { self.play(); });
+      $('#btn-pause-menu').addEventListener('click', function () { self.showMenu(); });
+      $('#btn-again').addEventListener('click', function () { self.play(); });
+      $('#btn-menu').addEventListener('click', function () { self.showMenu(); });
+      $('#btn-revive').addEventListener('click', function () { self.revive(); });
+      $('#btn-double').addEventListener('click', function () { self.doubleCoins(); });
+
+      $$('[data-close]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var scr = b.closest('.screen');
+          if (scr && scr.id === 'scr-howto' && App.mode !== 'menu') {
+            self.showMenu();
+          } else if (scr && (scr.id === 'scr-settings')) {
+            self.showMenu();
+          } else {
+            self.showMenu();
+          }
+        });
+      });
+
+      $$('.tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          $$('.tab').forEach(function (t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          var isCoins = tab.getAttribute('data-tab') === 'coins';
+          $('#shop-grid').classList.toggle('hidden', isCoins);
+          $('#shop-iap').classList.toggle('hidden', !isCoins);
+          Sound.ui();
+        });
+      });
+
+      $('#btn-claim').addEventListener('click', function () { self.claimDaily(); });
+      $('#btn-free-coins').addEventListener('click', function () { self.freeCoins(); });
+
+      $('#btn-t-sound').addEventListener('click', function () { self.toggleSound(); });
+      $('#btn-s-sound').addEventListener('click', function () { self.toggleSound(); });
+      $('#btn-t-music').addEventListener('click', function () { self.toggleMusic(); });
+      $('#btn-s-music').addEventListener('click', function () { self.toggleMusic(); });
+
+      $('#btn-reset').addEventListener('click', function () { self.resetProgress(); });
+    },
+
+    bindGameHooks: function () {
+      var self = this;
+      App.ui = {
+        onHud: function (app) { self.updateHud(app); },
+        onGameOver: function (res, opts) { self.onGameOver(res, opts); },
+        onAutoPause: function () { self.onAutoPause(); },
+        onCombo: function () { /* reserved */ },
+        onPower: function () { /* reserved */ }
+      };
+    },
+
+    /* ---------- экраны ---------- */
+    hideScreens: function () {
+      $$('.screen').forEach(function (s) { s.classList.remove('show'); });
+    },
+
+    showScreen: function (id) {
+      this.hideScreens();
+      var el = $('#' + id);
+      if (el) el.classList.add('show');
+      $('#hud').classList.add('hidden');
+      this.screen = id;
+      Sound.ui();
+    },
+
+    showHud: function () {
+      this.hideScreens();
+      $('#hud').classList.remove('hidden');
+      this.screen = null;
+    },
+
+    showMenu: function () {
+      this.hideScreens();
+      App.toMenu();
+      $('#hud').classList.add('hidden');
+      this.refreshMenu();
+      $('#scr-menu').classList.add('show');
+      this.screen = 'scr-menu';
+      if (global.SDK) SDK.gameplayStop();
+    },
+
+    /* ---------- игра ---------- */
+    play: function () {
+      var self = this;
+      if (this._busy) return;
+      var go = function () {
+        self.hideScreens();
+        self.showHud();
+        App.startRun();
+        self.lastScore = -1;
+        self.updateHud(App);
+        Ads.noteRun();
+        if (global.Sound) Sound.ui();
+      };
+      if (Ads.canShowFullscreen()) {
+        this._busy = true;
+        Ads.showFullscreen(function () {
+          self._busy = false;
+          if (Save.data.noAds) Ads.noAds = true;
+          go();
+        });
+      } else {
+        go();
+      }
+    },
+
+    resume: function () {
+      this.showHud();
+      App.resume();
+      Sound.ui();
+    },
+
+    onAutoPause: function () {
+      if (App.mode !== 'playing') return;
+      App.pause();
+      this.showScreen('scr-pause');
+      this.syncToggles();
+    },
+
+    onGameOver: function (res, opts) {
+      var self = this;
+      this.lastResult = res;
+      this.showScreen('scr-over');
+      $('#over-score').textContent = fmt(res.score);
+      $('#over-best').textContent = fmt(res.best);
+      $('#over-fish').textContent = fmt(res.fish);
+      $('#over-coins').textContent = '+' + fmt(res.coins);
+      $('#over-newbest').classList.toggle('hidden', !res.isNew);
+      $('#over-coins').style.color = '';
+
+      var reviveBtn = $('#btn-revive');
+      var canRevive = opts && opts.canRevive && Ads.available();
+      reviveBtn.classList.toggle('hidden', !canRevive);
+      reviveBtn.disabled = false;
+
+      var dbl = $('#btn-double');
+      dbl.disabled = false;
+      dbl.classList.remove('hidden');
+      dbl.querySelector('span').textContent = I18n.t('over.double');
+
+      this.refreshMenu();
+      Save.saveNow();
+
+      if (res.isNew) {
+        setTimeout(function () {
+          self.confetti(res);
+        }, 120);
+      }
+    },
+
+    revive: function () {
+      var self = this;
+      var btn = $('#btn-revive');
+      var prevText = btn.querySelector('span').textContent;
+      btn.disabled = true;
+      btn.querySelector('span').textContent = I18n.t('common.loading');
+      Ads.showRewarded(function () {
+        App.revive();
+        self.showHud();
+        self.lastScore = -1;
+        btn.querySelector('span').textContent = prevText;
+        btn.disabled = false;
+      }, function (reason) {
+        btn.querySelector('span').textContent = prevText;
+        btn.disabled = false;
+        if (reason === 'unavailable') self.toast(I18n.t('toast.adUnavailable'), 'bad');
+        else if (reason === 'error' || reason === 'timeout') self.toast(I18n.t('toast.adError'), 'bad');
+      }, function () {
+        btn.querySelector('span').textContent = prevText;
+      });
+    },
+
+    doubleCoins: function () {
+      var self = this;
+      var res = this.lastResult;
+      if (!res || res.doubled) return;
+      var btn = $('#btn-double');
+      var span = btn.querySelector('span');
+      btn.disabled = true;
+      Ads.showRewarded(function () {
+        res.doubled = true;
+        Save.addCoins(res.coins);
+        $('#over-coins').textContent = '+' + fmt(res.coins * 2);
+        $('#over-coins').style.color = '#67e8a5';
+        span.textContent = I18n.t('over.doubled');
+        btn.disabled = true;
+        Sound.coin();
+        self.toast(I18n.t('toast.coins', { n: res.coins }), 'good');
+        self.refreshMenu();
+      }, function (reason) {
+        btn.disabled = false;
+        if (reason === 'unavailable') self.toast(I18n.t('toast.adUnavailable'), 'bad');
+        else if (reason !== 'closed') self.toast(I18n.t('toast.adError'), 'bad');
+      });
+    },
+
+    updateHud: function (app) {
+      var now = performance.now();
+      if (now - this.hudAt < 80) return;
+      this.hudAt = now;
+      var s = Math.floor(app.score);
+      if (s !== this.lastScore) {
+        this.lastScore = s;
+        $('#hud-score').textContent = fmt(s);
+      }
+      var comboEl = $('#hud-combo');
+      var mult = 1 + Math.min(7, Math.floor(app.combo / 4));
+      if (app.combo >= 2) {
+        comboEl.classList.remove('hidden');
+        comboEl.textContent = 'x' + mult + ' · ' + app.combo;
+        $('#hud-coins').textContent = fmt(app.coinValue());
+      } else {
+        comboEl.classList.add('hidden');
+        $('#hud-coins').textContent = fmt(app.coinValue());
+      }
+      var hint = $('#hint');
+      if (app.tutorial && app.mode === 'playing') hint.classList.remove('hidden');
+      else hint.classList.add('hidden');
+    },
+
+    confetti: function () {
+      var w = window.innerWidth, h = window.innerHeight;
+      for (var i = 0; i < 26; i++) {
+        App.parts.push({
+          x: Math.random() * w,
+          y: -20 - Math.random() * 120,
+          vx: (Math.random() - 0.5) * 60,
+          vy: 90 + Math.random() * 140,
+          life: 2.6, max: 2.6,
+          size: 2 + Math.random() * 3,
+          col: ['#ffd166', '#ff5fa2', '#8b5cff', '#67e8a5'][i % 4],
+          kind: 'spark'
+        });
+      }
+    },
+
+    /* ---------- монеты / меню ---------- */
+    refreshMenu: function () {
+      var coins = fmt(Save.data.coins || 0);
+      $('#menu-coins').textContent = coins;
+      $('#hud-coins').textContent = coins;
+      $('#shop-coins').textContent = coins;
+      $('#daily-coins').textContent = coins;
+      $('#leaders-coins').textContent = coins;
+      $('#menu-best').textContent = fmt(Save.data.best || 0);
+      this.refreshDots();
+    },
+
+    refreshDots: function () {
+      var d = Save.dailyState();
+      var missions = Save.missionsState();
+      var canMission = missions.some(function (m) { return m.done && !m.claimed; });
+      var free = Save.freeCoinsState();
+      $('#dot-daily').classList.toggle('hidden', !(d.canClaim || canMission || (free.left > 0 && free.wait === 0)));
+      $('#dot-shop').classList.toggle('hidden', (Save.data.coins || 0) < 150);
+    },
+
+    /* ---------- магазин ---------- */
+    openShop: function () {
+      this.showScreen('scr-shop');
+      $$('.tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-tab') === 'skins'); });
+      $('#shop-grid').classList.remove('hidden');
+      $('#shop-iap').classList.add('hidden');
+      this.renderSkins();
+      this.renderIap();
+      this.refreshMenu();
+    },
+
+    renderSkins: function () {
+      var self = this;
+      var grid = $('#shop-grid');
+      grid.innerHTML = '';
+      App.SKINS.forEach(function (skin) {
+        var owned = Save.ownsSkin(skin.id);
+        var equipped = Save.data.skin === skin.id;
+        var card = document.createElement('button');
+        card.className = 'skin-card' + (equipped ? ' equipped' : owned ? ' owned' : ' locked');
+        var cv = document.createElement('canvas');
+        card.appendChild(cv);
+        var name = document.createElement('div');
+        name.className = 'skin-name';
+        name.textContent = I18n.t('skins.' + skin.id);
+        card.appendChild(name);
+
+        var info = document.createElement('div');
+        if (equipped) {
+          info.className = 'state';
+          info.textContent = I18n.t('shop.equipped');
+        } else if (owned) {
+          info.className = 'state';
+          info.textContent = I18n.t('shop.equip');
+          info.style.color = '#c9b6ff';
+        } else {
+          info.className = 'skin-price';
+          info.innerHTML = '<svg><use href="#i-coin"></use></svg><span>' + fmt(skin.price) + '</span>';
+        }
+        card.appendChild(info);
+
+        if (!owned && (Save.data.coins || 0) >= skin.price) {
+          card.classList.add('affordable');
+        }
+
+        card.addEventListener('click', function () { self.pickSkin(skin); });
+        grid.appendChild(card);
+
+        requestAnimationFrame(function () { App.drawSkinPreview(cv, skin.id); });
+      });
+    },
+
+    pickSkin: function (skin) {
+      if (Save.ownsSkin(skin.id)) {
+        if (Save.data.skin !== skin.id) {
+          Save.equipSkin(skin.id);
+          App.setSkin(skin.id);
+          Sound.ui();
+          this.renderSkins();
+        }
+        return;
+      }
+      if ((Save.data.coins || 0) < skin.price) {
+        this.toast(I18n.t('toast.needCoins'), 'bad');
+        Sound.fail();
+        return;
+      }
+      var res = Save.buySkin(skin);
+      if (res === 'ok') {
+        App.setSkin(skin.id);
+        Sound.coin();
+        this.toast(I18n.t('toast.bought', { name: I18n.t('skins.' + skin.id) }), 'good');
+        this.renderSkins();
+        this.refreshMenu();
+      }
+    },
+
+    renderIap: function () {
+      var self = this;
+      var wrap = $('#shop-iap');
+      wrap.innerHTML = '';
+      var title = document.createElement('div');
+      title.className = 'card-title small';
+      title.textContent = I18n.t('shop.iapTitle');
+      wrap.appendChild(title);
+
+      var products = this._catalog || [];
+      if (!products.length) {
+        var note = document.createElement('p');
+        note.className = 'text';
+        note.textContent = I18n.t('shop.iapSoon');
+        wrap.appendChild(note);
+      } else {
+        products.forEach(function (p) {
+          var btn = document.createElement('button');
+          btn.className = 'iap-item';
+          var ic = document.createElement('div');
+          ic.className = 'iap-ic';
+          ic.innerHTML = '<svg><use href="#i-coin"></use></svg>';
+          btn.appendChild(ic);
+          var txt = document.createElement('div');
+          txt.className = 'iap-txt';
+          var b = document.createElement('b');
+          b.textContent = p.title || p.id;
+          var small = document.createElement('small');
+          small.textContent = p.description || '';
+          txt.appendChild(b); txt.appendChild(small);
+          btn.appendChild(txt);
+          var price = document.createElement('div');
+          price.className = 'iap-price';
+          price.textContent = p.price || '';
+          btn.appendChild(price);
+          btn.addEventListener('click', function () { self.buyIap(p); });
+          wrap.appendChild(btn);
+        });
+      }
+
+      var noAds = document.createElement('button');
+      noAds.className = 'iap-item';
+      noAds.innerHTML = '<div class="iap-ic"><svg><use href="#i-ad"></use></svg></div>' +
+        '<div class="iap-txt"><b>' + I18n.t('shop.noAds') + '</b><small>' + I18n.t('shop.noAdsDesc') + '</small></div>';
+      if (Save.data.noAds) {
+        var st = document.createElement('div');
+        st.className = 'iap-price';
+        st.textContent = I18n.t('shop.ownedNoAds');
+        noAds.appendChild(st);
+        noAds.disabled = true;
+        noAds.style.opacity = '.6';
+      } else {
+        noAds.addEventListener('click', function () { self.buyNoAds(); });
+      }
+      wrap.appendChild(noAds);
+    },
+
+    loadCatalog: function () {
+      var self = this;
+      if (!SDK.pay) return;
+      SDK.getCatalog().then(function (list) {
+        self._catalog = list || [];
+        self.renderIap();
+      });
+    },
+
+    buyNoAds: function () {
+      var self = this;
+      if (!SDK.pay) { this.toast(I18n.t('shop.iapSoon'), 'bad'); return; }
+      var id = (this._catalog || []).filter(function (p) { return /no_ads|noads|remove/i.test(p.id); })[0];
+      var pid = id ? id.id : 'no_ads';
+      SDK.purchase(pid).then(function (p) {
+        Save.data.noAds = true;
+        Ads.noAds = true;
+        Save.saveNow();
+        Sound.coin();
+        self.toast(I18n.t('toast.noAds'), 'good');
+        self.renderIap();
+      }).catch(function () {
+        self.toast(I18n.t('toast.buyFail'), 'bad');
+      });
+    },
+
+    buyIap: function (p) {
+      var self = this;
+      SDK.purchase(p.id).then(function (res) {
+        var amount = 0;
+        if (/100/.test(p.id)) amount = 100;
+        if (/500/.test(p.id)) amount = 500;
+        if (/1500/.test(p.id)) amount = 1500;
+        if (/5000/.test(p.id)) amount = 5000;
+        if (res && res.purchaseToken) {
+          SDK.consume(res.purchaseToken);
+        }
+        if (amount) {
+          Save.addCoins(amount);
+          self.toast(I18n.t('toast.coins', { n: amount }), 'good');
+          self.refreshMenu();
+          Sound.coin();
+        }
+      }).catch(function () {
+        self.toast(I18n.t('toast.buyFail'), 'bad');
+      });
+    },
+
+    /* ---------- ежедневки ---------- */
+    openDaily: function () {
+      this.showScreen('scr-daily');
+      this.renderDaily();
+      this.renderMissions();
+      this.refreshFreeCoins();
+      this.refreshMenu();
+    },
+
+    renderDaily: function () {
+      var row = $('#daily-row');
+      row.innerHTML = '';
+      var st = Save.dailyState();
+      var claimedToday = !st.canClaim;
+      for (var i = 0; i < 7; i++) {
+        var cell = document.createElement('div');
+        var isToday = (st.displayDay - 1) === i;
+        cell.className = 'day-cell' + (isToday && st.canClaim ? ' today' : '') + (isToday && claimedToday ? ' claimed' : '');
+        var dv = document.createElement('div');
+        dv.className = 'dv';
+        dv.innerHTML = '<svg><use href="#i-' + (i === 6 ? 'gift' : 'coin') + '"></use></svg>';
+        cell.appendChild(dv);
+        var b = document.createElement('b');
+        b.textContent = Save.DAILY_REWARDS[i];
+        cell.appendChild(b);
+        var d = document.createElement('div');
+        d.textContent = st.canClaim && isToday ? '•' : (i + 1);
+        cell.appendChild(d);
+        row.appendChild(cell);
+      }
+      var btn = $('#btn-claim');
+      if (st.canClaim) {
+        btn.disabled = false;
+        btn.textContent = I18n.t('daily.claim');
+        btn.classList.remove('hidden');
+      } else {
+        btn.disabled = true;
+        btn.textContent = I18n.t('daily.claimed');
+      }
+    },
+
+    claimDaily: function () {
+      var amount = Save.claimDaily();
+      if (!amount) return;
+      Sound.coin();
+      this.toast(I18n.t('toast.coins', { n: amount }), 'good');
+      this.renderDaily();
+      this.refreshMenu();
+    },
+
+    renderMissions: function () {
+      var self = this;
+      var wrap = $('#missions');
+      wrap.innerHTML = '';
+      var list = Save.missionsState();
+      list.forEach(function (m, idx) {
+        var row = document.createElement('div');
+        row.className = 'mission';
+        var txt = document.createElement('div');
+        txt.className = 'm-txt';
+        var name = document.createElement('div');
+        name.className = 'm-name';
+        name.textContent = I18n.t(m.key);
+        var bar = document.createElement('div');
+        bar.className = 'm-bar';
+        var fill = document.createElement('i');
+        fill.style.width = Math.min(100, Math.round((m.value / m.target) * 100)) + '%';
+        bar.appendChild(fill);
+        var prog = document.createElement('div');
+        prog.className = 'm-prog';
+        prog.textContent = fmt(m.value) + ' / ' + fmt(m.target);
+        txt.appendChild(name); txt.appendChild(bar); txt.appendChild(prog);
+        row.appendChild(txt);
+
+        var btn = document.createElement('button');
+        btn.className = 'm-claim';
+        if (m.claimed) {
+          btn.textContent = I18n.t('missions.done');
+          btn.disabled = true;
+          btn.classList.add('done');
+        } else if (m.done) {
+          btn.textContent = '+' + m.reward;
+          btn.addEventListener('click', function () {
+            var got = Save.claimMission(idx);
+            if (got) {
+              Sound.coin();
+              self.toast(I18n.t('toast.coins', { n: got }), 'good');
+              self.renderMissions();
+              self.refreshMenu();
+            }
+          });
+        } else {
+          btn.textContent = '+' + m.reward;
+          btn.disabled = true;
+        }
+        row.appendChild(btn);
+        wrap.appendChild(row);
+      });
+    },
+
+    refreshFreeCoins: function () {
+      var st = Save.freeCoinsState();
+      var btn = $('#btn-free-coins');
+      var label = $('#free-coins-text');
+      if (st.left <= 0) {
+        label.textContent = I18n.t('daily.freeLeft', { n: 0, max: st.max });
+        btn.disabled = true;
+        btn.style.opacity = '.5';
+      } else if (st.wait > 0) {
+        label.textContent = I18n.t('daily.wait', { s: Math.ceil(st.wait / 1000) });
+        btn.disabled = true;
+        btn.style.opacity = '.6';
+        var self = this;
+        if (!this._fcTimer) {
+          this._fcTimer = setInterval(function () {
+            if (UI.screen === 'scr-daily') UI.refreshFreeCoins();
+            else { clearInterval(UI._fcTimer); UI._fcTimer = null; }
+          }, 1000);
+        }
+      } else {
+        label.textContent = I18n.t('daily.freeLeft', { n: st.left, max: st.max });
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    },
+
+    freeCoins: function () {
+      var self = this;
+      var st = Save.freeCoinsState();
+      if (st.left <= 0 || st.wait > 0) return;
+      var btn = $('#btn-free-coins');
+      btn.disabled = true;
+      Ads.showRewarded(function () {
+        var got = Save.useFreeCoins();
+        if (got) {
+          Sound.coin();
+          self.toast(I18n.t('toast.coins', { n: got }), 'good');
+        }
+        self.refreshFreeCoins();
+        self.refreshMenu();
+      }, function (reason) {
+        if (reason === 'unavailable') self.toast(I18n.t('toast.adUnavailable'), 'bad');
+        else if (reason !== 'closed') self.toast(I18n.t('toast.adError'), 'bad');
+        self.refreshFreeCoins();
+      }, function () {
+        self.refreshFreeCoins();
+      });
+    },
+
+    /* ---------- лидеры ---------- */
+    openLeaders: function () {
+      this.showScreen('scr-leaders');
+      var list = $('#leaders-list');
+      list.innerHTML = '<div class="lb-empty">' + I18n.t('leaders.loading') + '</div>';
+      var self = this;
+      if (!SDK.lb) {
+        list.innerHTML = '<div class="lb-empty">' + I18n.t('leaders.error') + '</div>';
+        return;
+      }
+      SDK.getLeaders().then(function (res) {
+        var entries = (res && res.leaderboard && res.leaderboard.entries) || [];
+        if (!entries.length) {
+          list.innerHTML = '<div class="lb-empty">' + I18n.t('leaders.empty') + '</div>';
+          return;
+        }
+        list.innerHTML = '';
+        var meName = '';
+        try { meName = SDK.player && SDK.player.getName ? SDK.player.getName() : ''; } catch (e) {}
+        entries.forEach(function (e) {
+          var row = document.createElement('div');
+          row.className = 'lb-row';
+          var name = (e.player && e.player.publicName) || I18n.t('leaders.anon');
+          if (meName && name === meName) row.classList.add('me');
+          row.innerHTML = '<div class="lb-rank">' + e.rank + '</div>' +
+            '<div class="lb-name"></div>' +
+            '<div class="lb-score">' + fmt(e.score) + '</div>';
+          row.querySelector('.lb-name').textContent = name;
+          list.appendChild(row);
+        });
+      }).catch(function () {
+        list.innerHTML = '<div class="lb-empty">' + I18n.t('leaders.error') + '</div>';
+      });
+    },
+
+    /* ---------- настройки ---------- */
+    syncToggles: function () {
+      var s = Save.data.sound !== false;
+      var m = Save.data.music !== false;
+      [['#btn-t-sound', s], ['#btn-s-sound', s], ['#btn-t-music', m], ['#btn-s-music', m]].forEach(function (pair) {
+        var el = $(pair[0]);
+        if (!el) return;
+        el.classList.toggle('on', pair[1]);
+        el.classList.toggle('off', !pair[1]);
+      });
+    },
+
+    toggleSound: function () {
+      Save.data.sound = !Save.data.sound;
+      Save.save();
+      this.applySettings();
+      Sound.ui();
+    },
+
+    toggleMusic: function () {
+      Save.data.music = !Save.data.music;
+      Save.save();
+      this.applySettings();
+    },
+
+    applySettings: function () {
+      Sound.setEnabled(Save.data.sound !== false);
+      Sound.setMusic(Save.data.music !== false);
+      if (Save.data.music !== false && Sound.ctx && Sound._started) Sound.startMusic();
+      this.syncToggles();
+    },
+
+    resetProgress: function () {
+      var self = this;
+      if (!this.resetArmed) {
+        this.resetArmed = true;
+        $('#btn-reset').textContent = I18n.t('settings.resetAsk');
+        clearTimeout(this.resetTimer);
+        this.resetTimer = setTimeout(function () {
+          self.resetArmed = false;
+          $('#btn-reset').textContent = I18n.t('settings.reset');
+        }, 3000);
+        return;
+      }
+      clearTimeout(this.resetTimer);
+      this.resetArmed = false;
+      Save.reset();
+      App.setSkin('classic');
+      this.applySettings();
+      this.refreshMenu();
+      $('#btn-reset').textContent = I18n.t('settings.reset');
+      this.toast(I18n.t('toast.resetDone'), 'good');
+      this.showMenu();
+    },
+
+    /* ---------- утилиты ---------- */
+    toast: function (text, kind) {
+      var el = $('#toast');
+      el.textContent = text;
+      el.className = 'toast show' + (kind ? ' ' + kind : '');
+      clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(function () {
+        el.className = 'toast' + (kind ? ' ' + kind : '');
+      }, 2400);
+    }
+  };
+
+  global.UI = UI;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    UI.init();
+    var tab = null;
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('.tab');
+      if (t) tab = t;
+    });
+  });
+})(window);
+
+</script>
+<script>
+/* PWA: установка приложения и офлайн-режим */
+(function (global) {
+  'use strict';
+
+  function $(sel) { return document.querySelector(sel); }
+
+  var PWA = {
+    deferred: null,
+    standalone: false,
+    inited: false,
+
+    init: function () {
+      if (this.inited) return;
+      this.inited = true;
+      var self = this;
+
+      this.standalone = this.isStandalone();
+
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        self.deferred = e;
+        self.refresh();
+      });
+
+      window.addEventListener('appinstalled', function () {
+        self.deferred = null;
+        self.refresh();
+        if (global.UI && UI.toast) UI.toast(I18n.t('install.done'), 'good');
+      });
+
+      window.__pwaSteps = window.__pwaSteps || [];
+      window.__pwaSteps.push('init');
+
+      if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.top === window.self) {
+        window.__pwaSteps.push('sw-if');
+        try {
+          window.__pwaSteps.push('sw-call');
+          navigator.serviceWorker.register('sw.js').then(function () {
+            window.__pwaSteps.push('sw-ok');
+          }).catch(function (e) {
+            window.__pwaSteps.push('sw-err');
+            window.__swErr = String((e && (e.name + ': ' + e.message)) || e);
+          });
+        } catch (e) {
+          window.__pwaSteps.push('sw-sync-err');
+          window.__swErr = 'sync ' + String((e && (e.name + ': ' + e.message)) || e);
+        }
+      }
+
+      var open = function () { self.open(); };
+      ['#btn-install', '#btn-install-settings'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.addEventListener('click', open);
+      });
+
+      this.refresh();
+    },
+
+    isStandalone: function () {
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+        navigator.standalone === true ||
+        (document.referrer || '').indexOf('android-app://') === 0;
+    },
+
+    isIOS: function () {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    },
+
+    canInstall: function () {
+      if (window.top !== window.self) return false;
+      return !!this.deferred || (this.isIOS() && !this.standalone);
+    },
+
+    refresh: function () {
+      var show = !this.standalone && this.canInstall();
+      ['#btn-install', '#btn-install-settings'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.classList.toggle('hidden', !show);
+      });
+      var card = $('#card-install');
+      if (card) card.classList.toggle('hidden', this.standalone);
+    },
+
+    open: function () {
+      var self = this;
+      if (this.deferred) {
+        this.deferred.prompt();
+        this.deferred.userChoice.then(function (res) {
+          if (res && res.outcome === 'accepted') self.deferred = null;
+          self.refresh();
+        }).catch(function () {});
+        return;
+      }
+      this.showHelp();
+    },
+
+    showHelp: function () {
+      var el = $('#install-text');
+      if (el) {
+        var key = this.isIOS() ? 'install.ios'
+          : (/Android/i.test(navigator.userAgent) ? 'install.android' : 'install.desktop');
+        el.setAttribute('data-i18n', key);
+        el.textContent = I18n.t(key);
+      }
+      if (global.UI) UI.showScreen('scr-install');
+    }
+  };
+
+  global.PWA = PWA;
+
+  document.addEventListener('DOMContentLoaded', function () { PWA.init(); });
+})(window);
+
+</script>
+</body>
+</html>
